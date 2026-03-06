@@ -1,4 +1,4 @@
-# SAF Timeline
+# SAF Roadmap
 
 An offline, single-file timeline/roadmap tool built with vanilla JavaScript. It visualizes activities for multiple projects in a Gantt-style chart. Designed for high-security environments, it runs entirely in the browser with no internet connection required.
 
