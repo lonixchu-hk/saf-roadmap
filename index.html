@@ -1,0 +1,1524 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      Half-Month Timeline – 1.8× Half Cards + Connectors + Status
+      (done/cancel/new) + week-cell.full
+    </title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --accent: #2563eb;
+        --grid: #e5e7eb;
+        --grid-strong: #cbd5e1;
+        --half-width: 200px; /* width per HALF-MONTH column */
+        --card-pad: 12px;
+        --card-radius: 12px;
+        --card-track-gap: 230px; /* dynamic gap between up/down tracks; JS will adjust */
+        --year-a-month: #f8fafc; /* cool tint */
+        --year-a-month-alt: #eef2ff;
+        --year-b-month: #fff7ed; /* warm tint */
+        --year-b-month-alt: #ffedd5;
+        --scroller-max-h: 78vh; /* allow vertical scroll inside scroller */
+        --show-activity-count: 0; /* 1 = show card-top-right activities count; 0 = hide */
+        /* === Status colors (customizable) === */
+        --status-done-bg: #e8f7ee; /* 子卡 done：淡綠 */
+        --status-cancel-bg: #f3f4f6; /* 子卡 cancel：淡灰（保留作為列背景）*/
+        --card-complete-ring: #22c55e; /* 完成卡外框綠 */
+        --status-new-badge: #ffff00; /* NEW：琥珀黃描邊 */
+        --status-new-ring: #facc15; /* NEW：琥珀黃描邊 */
+        --status-cancel-badge-bg: #f1f5f9; /* Cancel：日期徽章底色（淺灰） */
+        --status-cancel-text: #334155; /* Cancel：日期文字顏色（深灰） */
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial;
+        color: var(--ink);
+        background: var(--bg);
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 14px 16px;
+      }
+      .controls {
+        display: grid;
+        grid-template-columns: 0.5fr 1.2fr 0.5fr 1.2fr 1.6fr auto auto;
+        gap: 12px;
+        align-items: end;
+      }
+      .controls label {
+        font-size: 12px;
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+      }
+      .controls input[type="text"],
+      .controls select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        background: #fff;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        background: #eef2ff;
+        border: 1px solid #dbeafe;
+        color: #3730a3;
+        border-radius: 999px;
+        font-size: 13px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .chip input {
+        display: none;
+      }
+      .chip.active {
+        background: #c7d2fe;
+        border-color: #a5b4fc;
+      }
+      .btn {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      .wrap {
+        padding: 16px;
+      }
+      .timeline {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .notice {
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .scroller {
+        overflow-x: auto;
+        overflow-y: auto;
+        position: relative;
+        max-height: var(--scroller-max-h);
+      }
+      .content {
+        position: relative;
+        min-height: 360px;
+      }
+      .years {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 6;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+      }
+      .year-seg {
+        position: relative;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        letter-spacing: 0.3px;
+        color: #1f2937;
+        border-right: 1px solid #e5e7eb;
+      }
+      .months {
+        position: sticky;
+        top: 32px;
+        background: #fff;
+        z-index: 5;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+      }
+      .month-cell {
+        flex: 0 0 calc(var(--half-width) * 2);
+        text-align: center;
+        padding: 8px 0;
+        position: relative;
+        font-weight: 800;
+        height: 40px;
+        border-right: 1px solid #e5e7eb;
+      }
+      .month-link {
+        color: #0f172a;
+        text-decoration: none;
+        padding: 6px 10px;
+        border-radius: 8px;
+      }
+      .month-link:hover {
+        background: #e5e7eb;
+      }
+      .weeks {
+        position: sticky;
+        top: 72px;
+        background: #fff;
+        z-index: 5;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+      }
+      .week-cell {
+        flex: 0 0 var(--half-width);
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: #1f2937;
+        border-right: 1px dashed #e5e7eb;
+      }
+      .week-cell.full {
+        flex: 0 0 calc(var(--half-width) * 2);
+        font-weight: 600;
+        background: #fafafa;
+      }
+      .board {
+        position: relative;
+      }
+      .month-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 64px;
+        bottom: 0;
+        pointer-events: none;
+      }
+      .month-band.year-a {
+        background: var(--year-a-month);
+      }
+      .month-band.year-a.alt {
+        background: var(--year-a-month-alt);
+      }
+      .month-band.year-b {
+        background: var(--year-b-month);
+      }
+      .month-band.year-b.alt {
+        background: var(--year-b-month-alt);
+      }
+      .month-divider {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: var(--grid-strong);
+        opacity: 0.7;
+      }
+      .week-tick {
+        position: absolute;
+        top: 108px;
+        bottom: 0;
+        width: 1px;
+        background: #e5e7eb;
+        opacity: 0.8;
+      }
+      .today-line {
+        position: absolute;
+        top: 108px;
+        bottom: 0;
+        width: 2px;
+        background: #ef4444;
+      }
+      .cards-layer {
+        position: absolute;
+        left: 0;
+        right: 0;
+        padding-bottom: 40px;
+      }
+      .month-card {
+        position: absolute;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: var(--card-radius);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+        padding: var(--card-pad);
+        text-align: left;
+      }
+      /* 半月卡寬度 1.8×，並保持置中（由 JS 設置 left） */
+      .month-card.half {
+        width: calc(var(--half-width) * 1.8 - 20px);
+      }
+      /* 整月卡維持 2 欄寬 */
+      .month-card.full {
+        width: calc(var(--half-width) * 2 - 20px);
+      }
+      /* 上下軌基準與半月卡細微錯層 */
+      .month-card.up {
+        top: 72px;
+      }
+      .month-card.down {
+        top: calc(72px + var(--card-track-gap));
+      }
+      .month-card.half.up {
+        top: 64px;
+      }
+      .month-card.half.down {
+        top: calc(72px + var(--card-track-gap) + 12px);
+      }
+      .m-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .m-title {
+        font-weight: 900;
+        letter-spacing: 0.3px;
+      }
+      .m-meta {
+        font-size: 12px;
+        color: #64748b;
+      }
+      .m-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      /* 子卡：改為 3 欄（icon | date-badge | text）*/
+      .mi {
+        display: grid;
+        grid-template-columns: auto auto 1fr;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+      }
+      .date-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-weight: 800;
+        font-size: 12px;
+        border: 1.5px solid currentColor;
+        color: #0f172a;
+        background: #fff;
+        cursor: pointer;
+        min-width: 90px;
+      }
+      .new-badge {
+        position: absolute;
+        left: -12px;
+        background: var(--status-new-badge);
+        border: 1px solid var(--status-new-ring);
+        border-radius: 5px;
+        padding: 1px 9px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .mi .title {
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .mi .sub {
+        font-size: 11px;
+        color: #64748b;
+      }
+      .empty {
+        font-size: 12px;
+        color: #94a3b8;
+        border: 1px dashed #cbd5e1;
+        padding: 8px;
+        border-radius: 10px;
+      }
+
+      .legend {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        font-size: 12px;
+        color: #64748b;
+        border-top: 1px solid #e5e7eb;
+        background: #fafafa;
+        padding: 10px 12px;
+      }
+      .pill {
+        display: inline-block;
+        width: 22px;
+        height: 10px;
+        border-radius: 999px;
+        background: #94a3b8;
+      }
+      /* 週列 ↔ 卡片的對應連接線 */
+      .connector {
+        position: absolute;
+        width: 2px;
+        background: #94a3b8;
+        z-index: 3;
+      }
+      .connector::after {
+        content: "";
+        position: absolute;
+        bottom: -4px;
+        left: -3px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #94a3b8;
+      }
+
+      /* --- Project legend on top of timeline --- */
+      .project-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        align-items: center;
+        padding: 10px 12px;
+        margin: 0 0 10px 0;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+      }
+      .legend-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        font-size: 12.5px;
+        color: var(--ink);
+        user-select: none;
+      }
+      .legend-swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+      }
+      .legend-name {
+        font-weight: 600;
+        letter-spacing: 0.2px;
+      }
+
+      /* === Activity status styles === */
+      .mi-flag {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        display: inline-block;
+        background: #22c55e
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'><circle cx='10' cy='10' r='10' fill='%2386efac'/><path d='M6 10.5l2.5 2.5L14 8' stroke='%2322c55e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+          center/contain no-repeat;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+        visibility: hidden;
+      }
+
+      .mi.status-done {
+        background: var(--status-done-bg);
+        border-color: #bbf7d0;
+      }
+      .mi.status-done .mi-flag {
+        visibility: visible;
+      } /* 顯示勾勾 */
+
+      .mi.status-cancel {
+        background: var(--status-cancel-bg);
+        border-color: #e5e7eb;
+      }
+      .mi.status-cancel .title {
+        text-decoration: line-through;
+        color: #64748b;
+      }
+
+      /* NEW：黃框高亮 */
+      .mi.status-new {
+        border-color: var(--status-new-ring);
+        box-shadow: 0 0 0 2px
+          color-mix(in srgb, var(--status-new-ring) 45%, transparent);
+      }
+
+      /* CANCEL：改為叉叉 + 日期徽章灰化 + 日期文字刪除線 */
+      .mi.status-cancel .mi-flag {
+        visibility: visible;
+        background: #ef4444
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'><circle cx='10' cy='10' r='10' fill='%23fecaca'/><path d='M6 6l8 8M14 6l-8 8' stroke='%23ef4444' stroke-width='2.2' stroke-linecap='round'/></svg>")
+          center/contain no-repeat;
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08);
+      }
+      .mi.status-cancel .date-badge {
+        background: var(--status-cancel-badge-bg) !important;
+        border-color: #cbd5e1;
+      }
+      .mi.status-cancel .date-badge .date-text {
+        color: var(--status-cancel-text) !important;
+        text-decoration: line-through;
+      }
+
+      /* === Completed month/half-month card === */
+      .month-card.card-complete {
+        border-color: var(--card-complete-ring);
+        box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+      }
+      .month-card.card-complete .complete-badge {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #86efac
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'><circle cx='10' cy='10' r='10' fill='%2386efac'/><path d='M6 10.5l2.5 2.5L14 8' stroke='%2322c55e' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+          center/12px 12px no-repeat;
+        border: 2px solid var(--card-complete-ring);
+      }
+
+      @media (max-width: 1080px) {
+        .controls {
+          grid-template-columns: 0.7fr 1fr 0.7fr 1fr 1fr auto;
+        }
+        :root {
+          --half-width: 260px;
+        }
+      }
+      @media (max-width: 780px) {
+        .controls {
+          grid-template-columns: 0.7fr 1fr 0.7fr 1fr auto;
+        }
+        :root {
+          --half-width: 220px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="controls">
+        <div>
+          <label>Start 條件</label>
+          <select id="startCond">
+            <option value="<" selected><</option>
+            <option value="=">=</option>
+          </select>
+        </div>
+        <div>
+          <label>Start 月份（例：Nov 2025 或 2025-11）</label>
+          <input id="startInput" type="text" placeholder="Nov 2025" />
+        </div>
+        <div>
+          <label>End 條件</label>
+          <select id="endCond">
+            <option value="=" selected>=</option>
+            <option value=">">></option>
+          </select>
+        </div>
+        <div>
+          <label>End 月份（例：Mar 2026 或 2026-03）</label>
+          <input id="endInput" type="text" placeholder="Mar 2026" />
+        </div>
+        <div>
+          <label>Filter by Project（可複選）</label>
+          <div id="projectChips" class="chips"></div>
+        </div>
+        <button id="applyBtn" class="btn primary">Apply</button>
+        <button id="resetBtn" class="btn">Reset</button>
+      </div>
+      <div id="msg" class="notice"></div>
+    </header>
+    <div class="wrap">
+      <!-- Project color legend (on top of the timeline chart) -->
+      <div id="projectLegend" class="project-legend"></div>
+
+      <section class="timeline">
+        <div class="scroller" id="scroller">
+          <div class="content">
+            <div class="years" id="yearsRow"></div>
+            <div class="months" id="monthsRow"></div>
+            <div class="weeks" id="weeksRow"></div>
+            <div class="board" id="board">
+              <div class="cards-layer" id="cardsLayer"></div>
+            </div>
+          </div>
+        </div>
+        <div class="legend">
+          <span>Legend：</span><span class="pill"></span> 半月欄位卡寬 1.8×
+          並置中；週列與卡片之間有對應連接線；Start="<"/End=">" 的邊界月份為
+          **合併視覺**（2 欄寬）
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // ========= 活動資料（status 可為：'done'、'cancel'、'new'；未填為進行中） =========
+      const ACTIVITIES = [
+        {
+          project: "Outage Phase 2",
+          title: "Requirement Collection",
+          start: "2025-09-01",
+          end: "2025-11-10",
+          dataLabel: "Sep–Nov",
+          status: "done",
+        },
+        {
+          project: "Site visit",
+          title: "Site Visit – Outage",
+          start: "2025-11-27",
+          end: "2025-11-27",
+          dataLabel: "27 Nov",
+          status: "done",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Paper Submission Process",
+          start: "2025-12-01",
+          end: "2026-01-31",
+          dataLabel: "Dec–Jan",
+          status: "done",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Solution Formation Team (SFT) Review",
+          start: "2025-12-02",
+          end: "2025-12-02",
+          dataLabel: "02 Dec",
+          status: "cancel",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Solution Formation Team (SFT) Review",
+          start: "2025-12-03",
+          end: "2025-12-03",
+          dataLabel: "03 Dec",
+          status: "new",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Project Review Board (PRB) Review",
+          start: "2025-12-02",
+          end: "2025-12-02",
+          dataLabel: "02 Dec",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Requirement Review Session (Working Level)",
+          start: "2025-12-05",
+          end: "2025-12-05",
+          dataLabel: "05 Dec",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Requirement Review Session (Department Head)",
+          start: "2025-12-17",
+          end: "2025-12-17",
+          dataLabel: "17 Dec",
+        },
+        {
+          project: "Site visit",
+          title: "Site Visit – Patrolman",
+          start: "2025-12-18",
+          end: "2025-12-18",
+          dataLabel: "18 Dec",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Paper Gate 1 Review",
+          start: "2025-12-22",
+          end: "2025-12-23",
+          dataLabel: "22–23 Dec",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Paper Gate 2 (SAB) Review",
+          start: "2025-12-29",
+          end: "2025-12-29",
+          dataLabel: "29 Dec",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Paper Gate 3 (PAB) Review",
+          start: "2026-01-05",
+          end: "2026-01-05",
+          dataLabel: "05 Jan",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "CIO Review & Approval",
+          start: "2026-01-15",
+          end: "2026-01-20",
+          dataLabel: "Mid Jan",
+        },
+        {
+          project: "Site visit",
+          title: "Site Visit – HSM",
+          start: "2026-01-15",
+          end: "2026-01-20",
+          dataLabel: "Mid Jan",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "FI Approval",
+          start: "2026-01-25",
+          end: "2026-01-31",
+          dataLabel: "End Jan",
+        },
+        {
+          project: "Outage Phase 2",
+          title: "Prioritize Business Requirements",
+          start: "2025-12-01",
+          end: "2026-01-31",
+          dataLabel: "Dec–Jan",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "Paper Submission Process",
+          start: "2026-01-01",
+          end: "2026-02-29",
+          dataLabel: "Jan–Feb",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "Solution Formation Team (SFT) Review",
+          start: "2026-02-10",
+          end: "2026-02-10",
+          dataLabel: "10 Feb",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "Project Review Board (PRB) Review",
+          start: "2026-02-15",
+          end: "2026-02-20",
+          dataLabel: "Mid Feb",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "Paper Gate 1 Review",
+          start: "2026-02-25",
+          end: "2026-02-29",
+          dataLabel: "End Feb",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "Paper Gate 2 (SAB) Review",
+          start: "2026-03-05",
+          end: "2026-03-10",
+          dataLabel: "Early Mar",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "Paper Gate 3 (PAB) Review",
+          start: "2026-03-15",
+          end: "2026-03-20",
+          dataLabel: "Mid Mar",
+        },
+        {
+          project: "HSM + Patrolman Phase 1",
+          title: "CIO Review & Approval",
+          start: "2026-03-25",
+          end: "2026-03-31",
+          dataLabel: "End Mar",
+        },
+      ];
+      // ========= Utilities =========
+      const MONTHS = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const PROJECT_COLOR_MAP = {
+        "Outage Phase 2": { text: "222268", bg: "00ffff" },
+        "HSM + Patrolman Phase 1": { text: "FFFFFF", bg: "008000" },
+        "Site visit": { text: "222268", bg: "ffff00" },
+      };
+      const parseYMD = (s) => {
+        const [y, m, d] = s.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      };
+      const eom = (y, m) => new Date(y, m + 1, 0);
+      const bom = (y, m) => new Date(y, m, 1);
+      const daysInMonth = (y, m) => eom(y, m).getDate();
+      function parseMonthInput(t) {
+        if (!t || !t.trim()) return null;
+        t = t.trim();
+        let m = t.match(/^(?:[A-Za-z]{3,9})\s+(\d{4})$/);
+        if (m) {
+          const MONTH_MAP = {
+            jan: 0,
+            feb: 1,
+            mar: 2,
+            apr: 3,
+            may: 4,
+            jun: 5,
+            jul: 6,
+            aug: 7,
+            sep: 8,
+            sept: 8,
+            oct: 9,
+            nov: 10,
+            dec: 11,
+          };
+          const [mm, yy] = [
+            MONTH_MAP[t.split(/\s+/)[0].toLowerCase()],
+            +t.split(/\s+/)[1],
+          ];
+          if (mm != null && !isNaN(yy)) return { y: yy, m: mm };
+        }
+        m = t.match(/^(\d{4})[-\/]([0-9]{1,2})$/);
+        if (m) {
+          const yy = +m[1],
+            mm = +m[2] - 1;
+          if (!isNaN(yy) && mm >= 0 && mm <= 11) return { y: yy, m: mm };
+        }
+        return null;
+      }
+      function projectColor(name) {
+        return PROJECT_COLOR_MAP[name] || { text: "1f2937", bg: "e5e7eb" };
+      }
+
+      // ========= State =========
+      const state = {
+        start: null,
+        end: null,
+        startCond: "=",
+        endCond: "=",
+        projects: [],
+        selected: new Set(),
+        segWidth: 300,
+      };
+
+      // ========= Project Legend =========
+      function renderProjectLegend() {
+        const host = document.getElementById("projectLegend");
+        if (!host) return;
+        host.innerHTML = "";
+        const entries = Object.entries(PROJECT_COLOR_MAP);
+        const allNames = entries.length
+          ? entries.map(([name]) => name)
+          : Array.from(new Set(ACTIVITIES.map((a) => a.project)));
+        const visible = Array.from(state.selected || new Set(allNames));
+        visible.forEach((name) => {
+          const c = projectColor(name);
+          const textColor = (c.text || "").toString().startsWith("#")
+            ? c.text
+            : `#${c.text}`;
+          const bgColor = (c.bg || "").toString().startsWith("#")
+            ? c.bg
+            : `#${c.bg}`;
+          const item = document.createElement("div");
+          item.className = "legend-item";
+          item.dataset.project = name;
+          const sw = document.createElement("span");
+          sw.className = "legend-swatch";
+          sw.style.background = bgColor;
+          sw.style.boxShadow = `inset 0 0 0 2px ${textColor}22`;
+          const nm = document.createElement("span");
+          nm.className = "legend-name";
+          nm.textContent = name;
+          item.appendChild(sw);
+          item.appendChild(nm);
+          host.appendChild(item);
+        });
+      }
+
+      // ========= Controls =========
+      function initControls() {
+        state.projects = Array.from(
+          new Set(ACTIVITIES.map((a) => a.project)),
+        ).sort();
+        const chips = document.getElementById("projectChips");
+        chips.innerHTML = "";
+        const all = document.createElement("label");
+        all.className = "chip active";
+        all.innerHTML =
+          '<input type="checkbox" data-project="__ALL__" checked>All';
+        chips.appendChild(all);
+        state.projects.forEach((p) => {
+          const c = document.createElement("label");
+          c.className = "chip active";
+          c.innerHTML = `<input type="checkbox" data-project="${p}" checked>${p}`;
+          chips.appendChild(c);
+        });
+        state.selected = new Set(state.projects);
+        chips.addEventListener("change", (e) => {
+          const cb = e.target.closest('input[type="checkbox"]');
+          if (!cb) return;
+          const proj = cb.dataset.project;
+          if (proj === "__ALL__") {
+            const checked = cb.checked;
+            chips.querySelectorAll('input[type="checkbox"]').forEach((x) => {
+              if (x.dataset.project !== "__ALL__") x.checked = checked;
+              x.parentElement.classList.toggle("active", x.checked);
+            });
+            state.selected = checked ? new Set(state.projects) : new Set();
+          } else {
+            cb.parentElement.classList.toggle("active", cb.checked);
+            if (cb.checked) state.selected.add(proj);
+            else state.selected.delete(proj);
+            const allCb = chips.querySelector('input[data-project="__ALL__"]');
+            const every = state.projects.every((p) => state.selected.has(p));
+            allCb.checked = every;
+            allCb.parentElement.classList.toggle("active", every);
+          }
+          render();
+        });
+        document.getElementById("startCond").value = "<";
+        document.getElementById("startInput").value = "Nov 2025";
+        document.getElementById("endCond").value = ">";
+        document.getElementById("endInput").value = "Mar 2026";
+        document.getElementById("applyBtn").addEventListener("click", () => {
+          applyRange();
+          render();
+        });
+        document.getElementById("resetBtn").addEventListener("click", () => {
+          document.getElementById("startCond").value = "<";
+          document.getElementById("startInput").value = "Nov 2025";
+          document.getElementById("endCond").value = ">";
+          document.getElementById("endInput").value = "Mar 2026";
+          chips.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+            cb.checked = true;
+            cb.parentElement.classList.add("active");
+          });
+          state.selected = new Set(state.projects);
+          applyRange();
+          render();
+        });
+        applyRange();
+      }
+
+      // ========= Range =========
+      function applyRange() {
+        const sCondRaw = document.getElementById("startCond").value;
+        const eCondRaw = document.getElementById("endCond").value;
+        const sInp = document.getElementById("startInput").value;
+        const eInp = document.getElementById("endInput").value;
+        const minDate = new Date(
+          Math.min(...ACTIVITIES.map((a) => parseYMD(a.start))),
+        );
+        const maxDate = new Date(
+          Math.max(...ACTIVITIES.map((a) => parseYMD(a.end || a.start))),
+        );
+        let s = parseMonthInput(sInp) || {
+          y: minDate.getFullYear(),
+          m: minDate.getMonth(),
+        };
+        let e = parseMonthInput(eInp) || {
+          y: maxDate.getFullYear(),
+          m: maxDate.getMonth(),
+        };
+        let visStart = bom(s.y, s.m),
+          visEnd = eom(e.y, e.m);
+        const sCond = sCondRaw === "<" || sCondRaw === "=" ? sCondRaw : "=";
+        const eCond = eCondRaw === "=" || eCondRaw === ">" ? eCondRaw : "=";
+        if (visStart > visEnd)
+          visEnd = eom(visStart.getFullYear(), visStart.getMonth());
+        state.startCond = sCond;
+        state.endCond = eCond;
+        state.start = visStart;
+        state.end = visEnd;
+        const sLabel = `${MONTHS[visStart.getMonth()]} ${visStart.getFullYear()}${sCond === "<" ? "（含之前活動彙整）" : ""}`;
+        const eLabel = `${MONTHS[visEnd.getMonth()]} ${visEnd.getFullYear()}${eCond === ">" ? "（含之後活動彙整）" : ""}`;
+        document.getElementById("msg").textContent =
+          `視窗：${sLabel} ➜ ${eLabel}`;
+      }
+
+      // ========= Helpers =========
+      function monthsBetween(start, end) {
+        const out = [];
+        let y = start.getFullYear(),
+          m = start.getMonth();
+        while (
+          y < end.getFullYear() ||
+          (y === end.getFullYear() && m <= end.getMonth())
+        ) {
+          out.push({ y, m, days: daysInMonth(y, m) });
+          m++;
+          if (m > 11) {
+            m = 0;
+            y++;
+          }
+        }
+        return out;
+      }
+      function halfMonthsBetween(start, end) {
+        const months = monthsBetween(start, end);
+        const segs = [];
+        months.forEach((mm) => {
+          const h1s = bom(mm.y, mm.m);
+          const h1e = new Date(mm.y, mm.m, 15);
+          const h2s = new Date(mm.y, mm.m, 16);
+          const h2e = eom(mm.y, mm.m);
+          if (h1e >= start && h1s <= end)
+            segs.push({
+              y: mm.y,
+              m: mm.m,
+              half: 1,
+              ds: h1s,
+              de: h1e,
+              days: h1e.getDate() - h1s.getDate() + 1,
+              monthDays: mm.days,
+            });
+          if (h2e >= start && h2s <= end)
+            segs.push({
+              y: mm.y,
+              m: mm.m,
+              half: 2,
+              ds: h2s,
+              de: h2e,
+              days: h2e.getDate() - h2s.getDate() + 1,
+              monthDays: mm.days,
+            });
+        });
+        return segs;
+      }
+      function monthStartSegIndex(y, m, segs) {
+        for (let i = 0; i < segs.length; i++) {
+          if (segs[i].y === y && segs[i].m === m && segs[i].half === 1)
+            return i;
+        }
+        return 0;
+      }
+
+      // ========= Grouping（單一呈現 + 邊界月合併視覺 + 入桶去重） =========
+      function groupByHalfMonthUnified(
+        filtered,
+        segs,
+        visStart,
+        visEnd,
+        startCond,
+        endCond,
+      ) {
+        const map = new Map();
+        segs.forEach((sg) => {
+          const k = `${sg.y}-${String(sg.m + 1).padStart(2, "0")}-H${sg.half}`;
+          map.set(k, { seg: sg, items: [], _keys: new Set() });
+        });
+        const firstKey = `${segs[0].y}-${String(segs[0].m + 1).padStart(2, "0")}-H${segs[0].half}`;
+        const lastKey = `${segs[segs.length - 1].y}-${String(segs[segs.length - 1].m + 1).padStart(2, "0")}-H${segs[segs.length - 1].half}`;
+        const vStart = bom(visStart.getFullYear(), visStart.getMonth());
+        const vEnd = eom(visEnd.getFullYear(), visEnd.getMonth());
+        function keyForStart(date) {
+          const y = date.getFullYear(),
+            m = date.getMonth();
+          const half = date.getDate() <= 15 ? 1 : 2;
+          return `${y}-${String(m + 1).padStart(2, "0")}-H${half}`;
+        }
+        function pushOnce(bucketKey, payload) {
+          const bucket = map.get(bucketKey);
+          if (!bucket) return;
+          const uniq = `${payload.project}\n${payload.title}\n${payload.fullStart.toISOString().slice(0, 10)}`;
+          if (bucket._keys.has(uniq)) return;
+          bucket._keys.add(uniq);
+          bucket.items.push(payload);
+        }
+        filtered.forEach((a) => {
+          const s = parseYMD(a.start);
+          const e = a.end ? parseYMD(a.end) : parseYMD(a.start);
+          const isRange = !!(a.end && a.end !== a.start);
+          const k = keyForStart(s);
+          const base = {
+            isRange,
+            project: a.project,
+            title: a.title,
+            status: a.status,
+            dateLabel: a.dataLabel,
+            date: s,
+            fullStart: s,
+            fullEnd: e,
+            segStart: s,
+            segEnd: s,
+          };
+          if (map.has(k) && s >= vStart && s <= vEnd) {
+            pushOnce(k, base);
+            return;
+          }
+          if (s < vStart && e >= vStart && startCond === "<") {
+            pushOnce(firstKey, { ...base, collapsed: "before" });
+            return;
+          }
+          if (e > vEnd && s <= vEnd && endCond === ">") {
+            pushOnce(lastKey, { ...base, collapsed: "after" });
+            return;
+          }
+          if (e < vStart && startCond === "<") {
+            pushOnce(firstKey, { ...base, collapsed: "before" });
+            return;
+          }
+          if (s > vEnd && endCond === ">") {
+            pushOnce(lastKey, { ...base, collapsed: "after" });
+            return;
+          }
+        });
+        for (const [, bucket] of map) {
+          bucket.items.sort((p, q) => {
+            const da = p.date,
+              db = q.date;
+            if (da - db !== 0) return da - db;
+            return p.project > q.project ? 1 : -1;
+          });
+        }
+        return map;
+      }
+
+      // ========= Render =========
+      let lastConnectorCards = [];
+      function drawConnectors() {
+        const board = document.getElementById("board");
+        board.querySelectorAll(".connector").forEach((n) => n.remove());
+        if (!lastConnectorCards.length) return;
+        const weeksRow = document.querySelector(".weeks");
+        const boardRect = board.getBoundingClientRect();
+        const weeksRect = weeksRow.getBoundingClientRect();
+        const startY = weeksRect.bottom - boardRect.top;
+        lastConnectorCards.forEach((card) => {
+          if (!card.isConnected) return;
+          const crect = card.getBoundingClientRect();
+          const centerX = crect.left - boardRect.left + crect.width / 2;
+          const cardTop = crect.top - boardRect.top;
+          const h = Math.max(0, Math.round(cardTop - startY) - 4);
+          const line = document.createElement("div");
+          line.className = "connector";
+          line.style.left = Math.round(centerX) + "px";
+          line.style.top = Math.round(startY) + "px";
+          line.style.height = h + "px";
+          board.appendChild(line);
+        });
+      }
+
+      function render() {
+        const segWidth =
+          parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue(
+              "--half-width",
+            ),
+          ) || state.segWidth;
+        const months = monthsBetween(state.start, state.end);
+        const segs = halfMonthsBetween(state.start, state.end);
+        const totalWidth = segs.length * segWidth;
+        const yearsRow = document.getElementById("yearsRow");
+        const monthsRow = document.getElementById("monthsRow");
+        const weeksRow = document.getElementById("weeksRow");
+        const board = document.getElementById("board");
+        const cardsLayer = document.getElementById("cardsLayer");
+        const scroller = document.getElementById("scroller");
+        yearsRow.innerHTML = "";
+        monthsRow.innerHTML = "";
+        weeksRow.innerHTML = "";
+        board.style.width = totalWidth + "px";
+        cardsLayer.style.width = totalWidth + "px";
+
+        // 年份段
+        const firstYear = months.length
+          ? months[0].y
+          : new Date().getFullYear();
+        for (let i = 0; i < months.length; ) {
+          const y = months[i].y;
+          let count = 0;
+          while (i + count < months.length && months[i + count].y === y)
+            count++;
+          const seg = document.createElement("div");
+          seg.className = "year-seg";
+          seg.style.flex = `0 0 ${count * 2 * segWidth}px`;
+          seg.textContent = y;
+          yearsRow.appendChild(seg);
+          i += count;
+        }
+
+        // 月份標題
+        months.forEach((mm, i) => {
+          const cell = document.createElement("div");
+          cell.className = "month-cell";
+          let label = MONTHS[mm.m].toUpperCase();
+          if (i === 0 && state.startCond === "<") label = `<<<<<< ${label}`;
+          if (i === months.length - 1 && state.endCond === ">")
+            label = `${label} >>>>>>`;
+          const a = document.createElement("a");
+          a.href = "javascript:void(0)";
+          a.className = "month-link";
+          a.textContent = label;
+          a.title = `${MONTHS[mm.m]} ${mm.y}`;
+          a.addEventListener("click", () => {
+            const left = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
+            scroller.scrollTo({ left: left - 16, behavior: "smooth" });
+            const card =
+              document.getElementById(
+                `card-${mm.y}-${String(mm.m + 1).padStart(2, "0")}-H1`,
+              ) ||
+              document.getElementById(
+                `card-${mm.y}-${String(mm.m + 1).padStart(2, "0")}-FULL`,
+              );
+            if (card) {
+              card.animate(
+                [
+                  { boxShadow: "0 0 0 0 rgba(37,99,235,0)" },
+                  { boxShadow: "0 0 0 4px rgba(37,99,235,.25)" },
+                ],
+                { duration: 250, direction: "alternate", iterations: 2 },
+              );
+            }
+          });
+          cell.appendChild(a);
+          monthsRow.appendChild(cell);
+        });
+
+        // 週標籤（邊界月回復為 .week-cell.full 兩欄寬）
+        months.forEach((mm, i) => {
+          const leftIndex = monthStartSegIndex(mm.y, mm.m, segs);
+          const isFirst = i === 0 && state.startCond === "<";
+          const isLast = i === months.length - 1 && state.endCond === ">";
+          if (isFirst || isLast) {
+            const w = document.createElement("div");
+            w.className = "week-cell full";
+            w.textContent = "---------";
+            w.addEventListener("click", () =>
+              scroller.scrollTo({
+                left: leftIndex * segWidth - 16,
+                behavior: "smooth",
+              }),
+            );
+            weeksRow.appendChild(w);
+          } else {
+            const w1 = document.createElement("div");
+            w1.className = "week-cell";
+            w1.style.flex = `0 0 ${segWidth}px`;
+            w1.textContent = "Week 01–02";
+            const w2 = document.createElement("div");
+            w2.className = "week-cell";
+            w2.style.flex = `0 0 ${segWidth}px`;
+            w2.textContent = "Week 03–04";
+            w1.addEventListener("click", () =>
+              scroller.scrollTo({
+                left: leftIndex * segWidth - 16,
+                behavior: "smooth",
+              }),
+            );
+            w2.addEventListener("click", () =>
+              scroller.scrollTo({
+                left: (leftIndex + 1) * segWidth - 16,
+                behavior: "smooth",
+              }),
+            );
+            weeksRow.appendChild(w1);
+            weeksRow.appendChild(w2);
+          }
+        });
+
+        // 清背景線條 + 舊卡片
+        board
+          .querySelectorAll(
+            ".month-band,.month-divider,.week-tick,.today-line,.connector",
+          )
+          .forEach((n) => n.remove());
+        cardsLayer.replaceChildren();
+
+        // 背景色 + 月分隔線 + 週刻度
+        months.forEach((mm, i) => {
+          const xMonthStart = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
+          const band = document.createElement("div");
+          band.className = "month-band";
+          const yearIndex = (mm.y - firstYear) % 2;
+          band.classList.add(yearIndex === 0 ? "year-a" : "year-b");
+          if (i % 2 === 1) band.classList.add("alt");
+          band.style.left = xMonthStart + "px";
+          band.style.width = 2 * segWidth + "px";
+          board.appendChild(band);
+          const div = document.createElement("div");
+          div.className = "month-divider";
+          div.style.left = xMonthStart + "px";
+          board.appendChild(div);
+          [1, 8, 15, 22].forEach((d) => {
+            if (d > mm.days) return;
+            const x =
+              xMonthStart + Math.round(((d - 1) / mm.days) * (2 * segWidth));
+            const t = document.createElement("div");
+            t.className = "week-tick";
+            t.style.left = x + "px";
+            board.appendChild(t);
+          });
+        });
+
+        // 今天線
+        const today = new Date();
+        if (today >= state.start && today <= state.end) {
+          const idxMonth = months.findIndex(
+            (mm) => mm.y === today.getFullYear() && mm.m === today.getMonth(),
+          );
+          if (idxMonth !== -1) {
+            const mm = months[idxMonth];
+            const xMonthStart = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
+            const x =
+              xMonthStart +
+              Math.round(((today.getDate() - 1) / mm.days) * (2 * segWidth));
+            const tl = document.createElement("div");
+            tl.className = "today-line";
+            tl.style.left = x + "px";
+            board.appendChild(tl);
+          }
+        }
+
+        // 群組與卡片
+        const filtered = ACTIVITIES.filter((a) =>
+          state.selected.has(a.project),
+        );
+        const grouped = groupByHalfMonthUnified(
+          filtered,
+          segs,
+          state.start,
+          state.end,
+          state.startCond,
+          state.endCond,
+        );
+        let maxCardH = 0;
+        let upDownIndex = 0;
+        const halfCardW = segWidth * 1.8 - 20;
+        lastConnectorCards = [];
+        const showMeta = (() => {
+          const v = getComputedStyle(document.documentElement)
+            .getPropertyValue("--show-activity-count")
+            .trim();
+          return v === "1" || /^(true)$/i.test(v);
+        })();
+
+        months.forEach((mm, i) => {
+          const leftIndex = monthStartSegIndex(mm.y, mm.m, segs);
+          const isFirst = i === 0 && state.startCond === "<";
+          const isLast = i === months.length - 1 && state.endCond === ">";
+          const k1 = `${mm.y}-${String(mm.m + 1).padStart(2, "0")}-H1`;
+          const k2 = `${mm.y}-${String(mm.m + 1).padStart(2, "0")}-H2`;
+          if (isFirst || isLast) {
+            const itemsRaw = [
+              ...(grouped.get(k1)?.items || []),
+              ...(grouped.get(k2)?.items || []),
+            ];
+            const seen = new Set();
+            const items = itemsRaw.filter((it) => {
+              const u = `${it.project}\n${it.title}\n${it.fullStart.toISOString().slice(0, 10)}`;
+              if (seen.has(u)) return false;
+              seen.add(u);
+              return true;
+            });
+            const card = document.createElement("div");
+            card.className = "month-card full";
+            card.id = `card-${mm.y}-${String(mm.m + 1).padStart(2, "0")}-FULL`;
+            card.classList.add(upDownIndex % 2 === 0 ? "up" : "down");
+            upDownIndex++;
+            const baseLeft = leftIndex * segWidth;
+            card.style.left = baseLeft + 10 + "px";
+            const head = document.createElement("div");
+            head.className = "m-header";
+            const title = document.createElement("div");
+            title.className = "m-title";
+            title.textContent = "";
+            const meta = document.createElement("div");
+            meta.className = "m-meta";
+            meta.textContent = `${items.length} activities`;
+            head.appendChild(title);
+            if (showMeta) head.appendChild(meta);
+            card.appendChild(head);
+            const body = document.createElement("div");
+            body.className = "m-body";
+            if (items.length === 0) {
+              const empty = document.createElement("div");
+              empty.className = "empty";
+              empty.textContent = "No activities";
+              body.appendChild(empty);
+            } else {
+              items.forEach((it) => {
+                const row = document.createElement("div");
+                row.className = "mi";
+                const color = projectColor(it.project);
+                const textColor = `#${color.text}`;
+                const bgColor = `#${color.bg}`;
+                let badgeTxt =
+                  it.dateLabel && String(it.dateLabel).trim()
+                    ? it.dateLabel
+                    : `${MONTHS[mm.m]} ${it.date.getDate().toString().padStart(2, "0")}`;
+                const status = (it.status || "").toLowerCase();
+                row.classList.toggle("status-done", status === "done");
+                row.classList.toggle("status-cancel", status === "cancel");
+                row.classList.toggle("status-new", status === "new");
+                const newBadgeHTML = status === "new" ? "<span>NEW</span>" : "";
+                const badgeHTML =
+                  status === "cancel"
+                    ? `<span class=\"date-badge\" style=\"background: var(--status-cancel-badge-bg)\"><span class=\"dot\" style=\"background:#94a3b8\"></span><span class=\"date-text\">${badgeTxt}</span></span>`
+                    : `<span class=\"date-badge\" style=\"background:${bgColor}\"><span class=\"dot\" style=\"background:${textColor}\"></span><span class=\"date-text\" style=\"color:${textColor};font-weight:500;\">${badgeTxt}</span></span>`;
+                row.innerHTML =
+                  `<span class=\"mi-flag\"></span>` +
+                  newBadgeHTML +
+                  badgeHTML +
+                  `<div><div class=\"title\">${it.title}</div></div>`;
+                body.appendChild(row);
+              });
+            }
+            card.appendChild(body);
+            const allClosed =
+              items.length > 0 &&
+              items.every(
+                (it) => it.status === "done" || it.status === "cancel",
+              );
+            if (allClosed) {
+              card.classList.add("card-complete");
+              const badge = document.createElement("div");
+              badge.className = "complete-badge";
+              card.appendChild(badge);
+            }
+            cardsLayer.appendChild(card);
+            maxCardH = Math.max(maxCardH, card.offsetHeight);
+            lastConnectorCards.push(card);
+          } else {
+            [k1, k2].forEach((key, offset) => {
+              const bucket = grouped.get(key);
+              if (!bucket || bucket.items.length === 0) return;
+              const card = document.createElement("div");
+              card.className = "month-card half";
+              card.id = `card-${key}`;
+              card.classList.add(upDownIndex % 2 === 0 ? "up" : "down");
+              upDownIndex++;
+              const baseLeft = (leftIndex + offset) * segWidth;
+              const centerShift = (segWidth - halfCardW) / 2;
+              card.style.left = baseLeft + centerShift + 10 + "px";
+              const head = document.createElement("div");
+              head.className = "m-header";
+              const title = document.createElement("div");
+              title.className = "m-title";
+              title.textContent = "";
+              const meta = document.createElement("div");
+              meta.className = "m-meta";
+              meta.textContent = `${bucket.items.length} activities`;
+              head.appendChild(title);
+              if (showMeta) head.appendChild(meta);
+              card.appendChild(head);
+              const body = document.createElement("div");
+              body.className = "m-body";
+              bucket.items.forEach((it) => {
+                const row = document.createElement("div");
+                row.className = "mi";
+                const color = projectColor(it.project);
+                const textColor = `#${color.text}`;
+                const bgColor = `#${color.bg}`;
+                const badgeTxt =
+                  it.dateLabel && String(it.dateLabel).trim()
+                    ? it.dateLabel
+                    : key.endsWith("H1")
+                      ? `${MONTHS[mm.m]} H1`
+                      : `${MONTHS[mm.m]} H2`;
+                const status = (it.status || "").toLowerCase();
+                row.classList.toggle("status-done", status === "done");
+                row.classList.toggle("status-cancel", status === "cancel");
+                row.classList.toggle("status-new", status === "new");
+                const newBadgeHTML =
+                  status === "new" ? `<span class="new-badge">NEW</span>` : "";
+                const badgeHTML =
+                  status === "cancel"
+                    ? `<span class=\"date-badge\" style=\"background: var(--status-cancel-badge-bg)\"><span class=\"dot\" style=\"background:#94a3b8\"></span><span class=\"date-text\">${badgeTxt}</span></span>`
+                    : `<span class=\"date-badge\" style=\"background:${bgColor}\"><span class=\"dot\" style=\"background:${textColor}\"></span><span class=\"date-text\" style=\"color:${textColor};font-weight:500;\">${badgeTxt}</span></span>`;
+                row.innerHTML =
+                  `<span class=\"mi-flag\"></span>` +
+                  newBadgeHTML +
+                  badgeHTML +
+                  `<div><div class=\"title\">${it.title}</div></div>`;
+                body.appendChild(row);
+              });
+              card.appendChild(body);
+              const allClosed =
+                bucket.items.length > 0 &&
+                bucket.items.every(
+                  (it) => it.status === "done" || it.status === "cancel",
+                );
+              if (allClosed) {
+                card.classList.add("card-complete");
+                const badge = document.createElement("div");
+                badge.className = "complete-badge";
+                card.appendChild(badge);
+              }
+              cardsLayer.appendChild(card);
+              maxCardH = Math.max(maxCardH, card.offsetHeight);
+              lastConnectorCards.push(card);
+            });
+          }
+        });
+
+        // 動態更新 track gap
+        const upCards = Array.from(
+          cardsLayer.querySelectorAll(".month-card.up"),
+        );
+        const maxUpH = upCards.length
+          ? Math.max(...upCards.map((c) => c.offsetHeight))
+          : 0;
+        const dynamicGap = Math.max(120, maxUpH + 24);
+        document.documentElement.style.setProperty(
+          "--card-track-gap",
+          dynamicGap + "px",
+        );
+
+        // 重新繪製 connectors（支援垂直捲動下的 sticky 對齊）
+        drawConnectors();
+        scroller.removeEventListener("scroll", drawConnectors);
+        scroller.addEventListener("scroll", () =>
+          requestAnimationFrame(drawConnectors),
+        );
+        window.removeEventListener("resize", drawConnectors);
+        window.addEventListener("resize", () =>
+          requestAnimationFrame(drawConnectors),
+        );
+
+        // 調整容器最小高度，避免被裁切
+        document.querySelector(".content").style.minHeight =
+          116 + dynamicGap + maxCardH + 120 + "px";
+        // 同步 legend
+        renderProjectLegend();
+      }
+
+      // ========= Boot =========
+      (function () {
+        initControls();
+        render();
+        renderProjectLegend();
+      })();
+    </script>
+  </body>
+</html>
