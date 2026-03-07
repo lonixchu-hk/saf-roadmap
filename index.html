@@ -559,6 +559,9 @@
         </div>
         <button id="applyBtn" class="btn primary">Apply</button>
         <button id="resetBtn" class="btn">Reset</button>
+        <button id="exportJsonBtn" class="btn">Export JSON</button>
+        <button id="importJsonBtn" class="btn">Import JSON</button>
+        <input type="file" id="json-importer" style="display: none;" accept=".json,application/json">
       </div>
       <div id="msg" class="notice"></div>
     </header>
@@ -897,7 +900,7 @@
       }
 
       // ========= Controls =========
-      function initControls() {
+      function updateProjectChips() {
         state.projects = Array.from(
           new Set(ACTIVITIES.map((a) => a.project)),
         ).sort();
@@ -915,6 +918,12 @@
           chips.appendChild(c);
         });
         state.selected = new Set(state.projects);
+      }
+
+      function initControls() {
+        updateProjectChips();
+
+        const chips = document.getElementById("projectChips");
         chips.addEventListener("change", (e) => {
           const cb = e.target.closest('input[type="checkbox"]');
           if (!cb) return;
@@ -937,6 +946,7 @@
           }
           render();
         });
+
         document.getElementById("startCond").value = "<";
         document.getElementById("startInput").value = "Nov 2025";
         document.getElementById("endCond").value = ">";
@@ -950,17 +960,75 @@
           document.getElementById("startInput").value = "Nov 2025";
           document.getElementById("endCond").value = ">";
           document.getElementById("endInput").value = "Mar 2026";
-          chips.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-            cb.checked = true;
-            cb.parentElement.classList.add("active");
-          });
-          state.selected = new Set(state.projects);
+          updateProjectChips();
           applyRange();
           render();
         });
+
+        // JSON Export
+        document.getElementById("exportJsonBtn").addEventListener("click", () => {
+          exportActivitiesAsJson();
+        });
+
+        // JSON Import
+        const fileImporter = document.getElementById("json-importer");
+        document.getElementById("importJsonBtn").addEventListener("click", () => {
+          fileImporter.click();
+        });
+        fileImporter.addEventListener("change", (e) => {
+          importActivitiesFromJson(e.target.files[0]);
+        });
+
         applyRange();
       }
 
+      // ========= Data Exchange =========
+      function exportActivitiesAsJson() {
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+        const filename = `roadmap-activities-${timestamp}.json`;
+
+        const dataStr = JSON.stringify(ACTIVITIES, null, 2);
+        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const url = URL.createObjectURL(dataBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      function importActivitiesFromJson(file) {
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            // Basic validation: check if it's an array
+            if (Array.isArray(importedData)) {
+              ACTIVITIES = importedData;
+              saveActivities(); // Persist the new data to LocalStorage
+              // Re-initialize the project filters and render
+              updateProjectChips(); 
+              render();
+              alert("Successfully imported activities.");
+            } else {
+              alert("Import failed: JSON file is not a valid activity array.");
+            }
+          } catch (err) {
+            console.error("Error parsing imported JSON:", err);
+            alert("Import failed: The selected file is not valid JSON.");
+          }
+        };
+        reader.onerror = function() {
+          alert("Error reading file.");
+        };
+        reader.readAsText(file);
+      }
+      
       // ========= Range =========
       function applyRange() {
         const sCondRaw = document.getElementById("startCond").value;
