@@ -900,7 +900,7 @@
       }
 
       // ========= Controls =========
-      function initControls() {
+      function updateProjectChips() {
         state.projects = Array.from(
           new Set(ACTIVITIES.map((a) => a.project)),
         ).sort();
@@ -918,6 +918,12 @@
           chips.appendChild(c);
         });
         state.selected = new Set(state.projects);
+      }
+
+      function initControls() {
+        updateProjectChips();
+
+        const chips = document.getElementById("projectChips");
         chips.addEventListener("change", (e) => {
           const cb = e.target.closest('input[type="checkbox"]');
           if (!cb) return;
@@ -940,6 +946,7 @@
           }
           render();
         });
+
         document.getElementById("startCond").value = "<";
         document.getElementById("startInput").value = "Nov 2025";
         document.getElementById("endCond").value = ">";
@@ -953,11 +960,7 @@
           document.getElementById("startInput").value = "Nov 2025";
           document.getElementById("endCond").value = ">";
           document.getElementById("endInput").value = "Mar 2026";
-          chips.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-            cb.checked = true;
-            cb.parentElement.classList.add("active");
-          });
-          state.selected = new Set(state.projects);
+          updateProjectChips();
           applyRange();
           render();
         });
@@ -981,12 +984,16 @@
 
       // ========= Data Exchange =========
       function exportActivitiesAsJson() {
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+        const filename = `roadmap-activities-${timestamp}.json`;
+
         const dataStr = JSON.stringify(ACTIVITIES, null, 2);
         const dataBlob = new Blob([dataStr], {type: "application/json"});
         const url = URL.createObjectURL(dataBlob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "roadmap-activities.json";
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -1004,8 +1011,8 @@
             if (Array.isArray(importedData)) {
               ACTIVITIES = importedData;
               saveActivities(); // Persist the new data to LocalStorage
-              // Re-initialize the entire application state
-              initControls(); 
+              // Re-initialize the project filters and render
+              updateProjectChips(); 
               render();
               alert("Successfully imported activities.");
             } else {
