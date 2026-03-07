@@ -1,168 +1,113 @@
 [
   {
-    "project": "Outage Phase 2",
-    "title": "Requirement Collection",
+    "project": "Project Alpha",
+    "title": "Phase 1: Discovery & Planning",
     "start": "2025-09-01",
-    "end": "2025-11-10",
-    "dataLabel": "Sep–Nov",
+    "end": "2025-09-30",
+    "dataLabel": "Sep",
     "status": "done"
   },
   {
-    "project": "Site visit",
-    "title": "Site Visit – Outage",
-    "start": "2025-11-27",
-    "end": "2025-11-27",
-    "dataLabel": "27 Nov",
+    "project": "Project Alpha",
+    "title": "Task 1.1: Stakeholder Interviews",
+    "start": "2025-09-05",
+    "end": "2025-09-10",
+    "dataLabel": "Early Sep",
     "status": "done"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Paper Submission Process",
-    "start": "2025-12-01",
-    "end": "2026-01-31",
-    "dataLabel": "Dec–Jan",
+    "project": "Project Alpha",
+    "title": "Task 1.2: Define Key Milestones",
+    "start": "2025-09-15",
+    "end": "2025-09-20",
+    "dataLabel": "Mid Sep",
     "status": "done"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Solution Formation Team (SFT) Review",
-    "start": "2025-12-02",
-    "end": "2025-12-02",
-    "dataLabel": "02 Dec",
-    "status": "cancel"
+    "project": "Project Bravo",
+    "title": "Phase 1: Initial Scoping",
+    "start": "2025-10-01",
+    "end": "2025-10-15",
+    "dataLabel": "Early Oct",
+    "status": "done"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Solution Formation Team (SFT) Review",
-    "start": "2025-12-03",
-    "end": "2025-12-03",
-    "dataLabel": "03 Dec",
+    "project": "Project Alpha",
+    "title": "Phase 2: Design & Prototyping",
+    "start": "2025-10-01",
+    "end": "2025-10-31",
+    "dataLabel": "Oct"
+  },
+  {
+    "project": "Project Alpha",
+    "title": "Task 2.1: Wireframe Creation",
+    "start": "2025-10-05",
+    "end": "2025-10-15",
+    "dataLabel": "Early Oct",
     "status": "new"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Project Review Board (PRB) Review",
-    "start": "2025-12-02",
-    "end": "2025-12-02",
-    "dataLabel": "02 Dec"
+    "project": "Project Alpha",
+    "title": "Task 2.2: Internal Design Review",
+    "start": "2025-10-16",
+    "end": "2025-10-16",
+    "dataLabel": "16 Oct",
+    "status": "cancel"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Requirement Review Session (Working Level)",
-    "start": "2025-12-05",
-    "end": "2025-12-05",
-    "dataLabel": "05 Dec"
+    "project": "Project Alpha",
+    "title": "Task 2.3: High-Fidelity Mockups",
+    "start": "2025-10-20",
+    "end": "2025-10-30",
+    "dataLabel": "Late Oct"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Requirement Review Session (Department Head)",
-    "start": "2025-12-17",
-    "end": "2025-12-17",
-    "dataLabel": "17 Dec"
+    "project": "Project Bravo",
+    "title": "Phase 2: Technical Specification",
+    "start": "2025-11-01",
+    "end": "2025-11-30",
+    "dataLabel": "Nov"
   },
   {
-    "project": "Site visit",
-    "title": "Site Visit – Patrolman",
-    "start": "2025-12-18",
-    "end": "2025-12-18",
-    "dataLabel": "18 Dec"
+    "project": "Project Bravo",
+    "title": "Task 2.1: Database Schema Design",
+    "start": "2025-11-01",
+    "end": "2025-11-10",
+    "dataLabel": "Early Nov"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Paper Gate 1 Review",
-    "start": "2025-12-22",
-    "end": "2025-12-23",
-    "dataLabel": "22–23 Dec"
+    "project": "Project Bravo",
+    "title": "Task 2.2: API Endpoint Definition",
+    "start": "2025-11-12",
+    "end": "2025-11-22",
+    "dataLabel": "Mid Nov"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Paper Gate 2 (SAB) Review",
-    "start": "2025-12-29",
-    "end": "2025-12-29",
-    "dataLabel": "29 Dec"
+    "project": "Project Alpha",
+    "title": "Phase 3: Development",
+    "start": "2025-11-01",
+    "end": "2025-12-31",
+    "dataLabel": "Nov-Dec"
   },
   {
-    "project": "Outage Phase 2",
-    "title": "Paper Gate 3 (PAB) Review",
-    "start": "2026-01-05",
-    "end": "2026-01-05",
-    "dataLabel": "05 Jan"
-  },
-  {
-    "project": "Outage Phase 2",
-    "title": "CIO Review & Approval",
-    "start": "2026-01-15",
-    "end": "2026-01-20",
-    "dataLabel": "Mid Jan"
-  },
-  {
-    "project": "Site visit",
-    "title": "Site Visit – HSM",
-    "start": "2026-01-15",
-    "end": "2026-01-20",
-    "dataLabel": "Mid Jan"
-  },
-  {
-    "project": "Outage Phase 2",
-    "title": "FI Approval",
-    "start": "2026-01-25",
-    "end": "2026-01-31",
-    "dataLabel": "End Jan"
-  },
-  {
-    "project": "Outage Phase 2",
-    "title": "Prioritize Business Requirements",
+    "project": "Project Bravo",
+    "title": "Phase 3: Core Feature Implementation",
     "start": "2025-12-01",
     "end": "2026-01-31",
-    "dataLabel": "Dec–Jan"
+    "dataLabel": "Dec-Jan"
   },
   {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "Paper Submission Process",
-    "start": "2026-01-01",
-    "end": "2026-02-29",
-    "dataLabel": "Jan–Feb"
+    "project": "General Task",
+    "title": "Q4 Security Audit",
+    "start": "2025-11-20",
+    "end": "2025-11-25",
+    "dataLabel": "Late Nov"
   },
   {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "Solution Formation Team (SFT) Review",
-    "start": "2026-02-10",
-    "end": "2026-02-10",
-    "dataLabel": "10 Feb"
-  },
-  {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "Project Review Board (PRB) Review",
-    "start": "2026-02-15",
-    "end": "2026-02-20",
-    "dataLabel": "Mid Feb"
-  },
-  {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "Paper Gate 1 Review",
-    "start": "2026-02-25",
-    "end": "2026-02-29",
-    "dataLabel": "End Feb"
-  },
-  {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "Paper Gate 2 (SAB) Review",
-    "start": "2026-03-05",
-    "end": "2026-03-10",
-    "dataLabel": "Early Mar"
-  },
-  {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "Paper Gate 3 (PAB) Review",
-    "start": "2026-03-15",
-    "end": "2026-03-20",
-    "dataLabel": "Mid Mar"
-  },
-  {
-    "project": "HSM + Patrolman Phase 1",
-    "title": "CIO Review & Approval",
-    "start": "2026-03-25",
-    "end": "2026-03-31",
-    "dataLabel": "End Mar"
+    "project": "General Task",
+    "title": "End-of-Year Review",
+    "start": "2025-12-15",
+    "end": "2025-12-20",
+    "dataLabel": "Mid Dec"
   }
 ]
