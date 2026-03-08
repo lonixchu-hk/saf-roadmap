@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>SAF Roadmap - Project Timeline Visualizer</title>
-    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3crect x='2' y='3' width='10' height='2' fill='%232563eb'/%3e%3crect x='2' y='7' width='12' height='2' fill='%232563eb'/%3e%3crect x='2' y='11' width='8' height='2' fill='%232563eb'/%3e%3c/svg%3e">
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3crect x='2' y='3' width='10' height='2' fill='%232563eb'/%3e%3crect x='2' y='7' width='12' height='2' fill='%232563eb'/%3e%3crect x='2' y='11' width='8' height='2' fill='%232563eb'/%3e%3c/svg%3e"
+    />
     <style>
       :root {
         --bg: #f7f8fa;
@@ -585,7 +588,12 @@
           <button id="exportJsonBtn" class="btn">Export JSON</button>
           <button id="importJsonBtn" class="btn">Import JSON</button>
         </div>
-        <input type="file" id="json-importer" style="display: none;" accept=".json,application/json">
+        <input
+          type="file"
+          id="json-importer"
+          style="display: none"
+          accept=".json,application/json"
+        />
       </div>
       <div id="msg" class="notice"></div>
     </header>
@@ -777,16 +785,40 @@
       function updateYearControls() {
         const startYearSelect = document.getElementById("startYear");
         const endYearSelect = document.getElementById("endYear");
-        startYearSelect.innerHTML = '';
-        endYearSelect.innerHTML = '';
+        startYearSelect.innerHTML = "";
+        endYearSelect.innerHTML = "";
 
-        const years = Array.from(new Set(ACTIVITIES.map(a => parseYMD(a.start).getFullYear())));
-        const minYear = years.length > 0 ? Math.min(...years) : new Date().getFullYear() - 1;
-        const maxYear = years.length > 0 ? Math.max(...years) : new Date().getFullYear() + 1;
+        const years = Array.from(
+          new Set(ACTIVITIES.map((a) => parseYMD(a.start).getFullYear())),
+        );
+        const minYear =
+          years.length > 0 ? Math.min(...years) : new Date().getFullYear() - 1;
+        const maxYear =
+          years.length > 0 ? Math.max(...years) : new Date().getFullYear() + 1;
 
         for (let y = minYear - 2; y <= maxYear + 2; y++) {
-            startYearSelect.add(new Option(y, y));
-            endYearSelect.add(new Option(y, y));
+          startYearSelect.add(new Option(y, y));
+          endYearSelect.add(new Option(y, y));
+        }
+      }
+
+      function resetDateRangeToProjectBounds() {
+        if (ACTIVITIES.length > 0) {
+          const allDates = [];
+          ACTIVITIES.forEach((a) => {
+            allDates.push(parseYMD(a.start));
+            if (a.end) {
+              allDates.push(parseYMD(a.end));
+            }
+          });
+
+          const minDate = new Date(Math.min.apply(null, allDates));
+          const maxDate = new Date(Math.max.apply(null, allDates));
+
+          document.getElementById("startYear").value = minDate.getFullYear();
+          document.getElementById("startMonth").value = minDate.getMonth();
+          document.getElementById("endYear").value = maxDate.getFullYear();
+          document.getElementById("endMonth").value = maxDate.getMonth();
         }
       }
 
@@ -794,10 +826,8 @@
         updateProjectChips();
 
         const startMonthSelect = document.getElementById("startMonth");
-        const startMonthSelect = document.getElementById("startMonth");
         const startYearSelect = document.getElementById("startYear");
         const endMonthSelect = document.getElementById("endMonth");
-        const endYearSelect = document.getElementById("endYear");
         const endYearSelect = document.getElementById("endYear");
 
         // Populate month dropdowns
@@ -833,38 +863,34 @@
         });
 
         document.getElementById("startCond").value = "<";
-        startMonthSelect.value = "10";
-        startYearSelect.value = "2025";
+        resetDateRangeToProjectBounds();
         document.getElementById("endCond").value = ">";
-        endMonthSelect.value = "2";
-        endYearSelect.value = "2026";
-        
+
         document.getElementById("applyBtn").addEventListener("click", () => {
           applyRange();
           render();
         });
         document.getElementById("resetBtn").addEventListener("click", () => {
-          document.getElementById("startCond").value = "<";
-          startMonthSelect.value = "10";
-          startYearSelect.value = "2025";
-          document.getElementById("endCond").value = ">";
-          endMonthSelect.value = "2";
-          endYearSelect.value = "2026";
+          resetDateRangeToProjectBounds();
           updateProjectChips();
           applyRange();
           render();
         });
 
         // JSON Export
-        document.getElementById("exportJsonBtn").addEventListener("click", () => {
-          exportActivitiesAsJson();
-        });
+        document
+          .getElementById("exportJsonBtn")
+          .addEventListener("click", () => {
+            exportActivitiesAsJson();
+          });
 
         // JSON Import
         const fileImporter = document.getElementById("json-importer");
-        document.getElementById("importJsonBtn").addEventListener("click", () => {
-          fileImporter.click();
-        });
+        document
+          .getElementById("importJsonBtn")
+          .addEventListener("click", () => {
+            fileImporter.click();
+          });
         fileImporter.addEventListener("change", (e) => {
           importActivitiesFromJson(e.target.files[0]);
         });
@@ -875,11 +901,11 @@
       // ========= Data Exchange =========
       function exportActivitiesAsJson() {
         const now = new Date();
-        const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}-${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+        const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}-${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
         const filename = `roadmap-activities-${timestamp}.json`;
 
         const dataStr = JSON.stringify(ACTIVITIES, null, 2);
-        const dataBlob = new Blob([dataStr], {type: "application/json"});
+        const dataBlob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(dataBlob);
         const a = document.createElement("a");
         a.href = url;
@@ -894,38 +920,22 @@
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
           try {
             const importedData = JSON.parse(e.target.result);
             // Basic validation: check if it's an array
             if (Array.isArray(importedData)) {
               ACTIVITIES = importedData;
-              saveActivities(); 
+              saveActivities();
 
               // Update controls to reflect new data
               updateProjectChips();
               updateYearControls();
 
               // Auto-adjust date range after import
-              if (ACTIVITIES.length > 0) {
-                const allDates = [];
-                ACTIVITIES.forEach(a => {
-                  allDates.push(parseYMD(a.start));
-                  if (a.end) {
-                    allDates.push(parseYMD(a.end));
-                  }
-                });
+              resetDateRangeToProjectBounds();
 
-                const minDate = new Date(Math.min.apply(null, allDates));
-                const maxDate = new Date(Math.max.apply(null, allDates));
-
-                document.getElementById('startYear').value = minDate.getFullYear();
-                document.getElementById('startMonth').value = minDate.getMonth();
-                document.getElementById('endYear').value = maxDate.getFullYear();
-                document.getElementById('endMonth').value = maxDate.getMonth();
-              }
-              
-              applyRange(); 
+              applyRange();
               render();
               alert("Successfully imported activities and updated date range.");
             } else {
@@ -936,25 +946,27 @@
             alert("Import failed: The selected file is not valid JSON.");
           }
         };
-        reader.onerror = function() {
+        reader.onerror = function () {
           alert("Error reading file.");
         };
         reader.readAsText(file);
       }
-      
+
       // ========= Range =========
       function applyRange() {
         const sCondRaw = document.getElementById("startCond").value;
         const eCondRaw = document.getElementById("endCond").value;
-        
+
         const startYear = parseInt(document.getElementById("startYear").value);
-        const startMonth = parseInt(document.getElementById("startMonth").value);
+        const startMonth = parseInt(
+          document.getElementById("startMonth").value,
+        );
         const endYear = parseInt(document.getElementById("endYear").value);
         const endMonth = parseInt(document.getElementById("endMonth").value);
 
         let s = { y: startYear, m: startMonth };
         let e = { y: endYear, m: endMonth };
-        
+
         let visStart = bom(s.y, s.m);
         let visEnd = eom(e.y, e.m);
         const sCond = sCondRaw === "<" || sCondRaw === "=" ? sCondRaw : "=";
@@ -1392,7 +1404,8 @@
                 row.classList.toggle("status-done", status === "done");
                 row.classList.toggle("status-cancel", status === "cancel");
                 row.classList.toggle("status-new", status === "new");
-                const newBadgeHTML = status === "new" ? "<span>NEW</span>" : "";
+                const newBadgeHTML =
+                  status === "new" ? `<span class="new-badge">NEW</span>` : "";
                 const badgeHTML =
                   status === "cancel"
                     ? `<span class=\"date-badge\" style=\"background: var(--status-cancel-badge-bg)\"><span class=\"dot\" style=\"background:#94a3b8\"></span><span class=\"date-text\">${badgeTxt}</span></span>`
