@@ -774,12 +774,30 @@
         state.selected = new Set(state.projects);
       }
 
+      function updateYearControls() {
+        const startYearSelect = document.getElementById("startYear");
+        const endYearSelect = document.getElementById("endYear");
+        startYearSelect.innerHTML = '';
+        endYearSelect.innerHTML = '';
+
+        const years = Array.from(new Set(ACTIVITIES.map(a => parseYMD(a.start).getFullYear())));
+        const minYear = years.length > 0 ? Math.min(...years) : new Date().getFullYear() - 1;
+        const maxYear = years.length > 0 ? Math.max(...years) : new Date().getFullYear() + 1;
+
+        for (let y = minYear - 2; y <= maxYear + 2; y++) {
+            startYearSelect.add(new Option(y, y));
+            endYearSelect.add(new Option(y, y));
+        }
+      }
+
       function initControls() {
         updateProjectChips();
 
         const startMonthSelect = document.getElementById("startMonth");
+        const startMonthSelect = document.getElementById("startMonth");
         const startYearSelect = document.getElementById("startYear");
         const endMonthSelect = document.getElementById("endMonth");
+        const endYearSelect = document.getElementById("endYear");
         const endYearSelect = document.getElementById("endYear");
 
         // Populate month dropdowns
@@ -788,14 +806,7 @@
           endMonthSelect.add(new Option(month, i));
         });
 
-        // Populate year dropdowns based on activity data
-        const years = Array.from(new Set(ACTIVITIES.map(a => parseYMD(a.start).getFullYear())));
-        const minYear = years.length > 0 ? Math.min(...years) : new Date().getFullYear() - 1;
-        const maxYear = years.length > 0 ? Math.max(...years) : new Date().getFullYear() + 1;
-        for (let y = minYear - 2; y <= maxYear + 2; y++) {
-          startYearSelect.add(new Option(y, y));
-          endYearSelect.add(new Option(y, y));
-        }
+        updateYearControls();
 
         const chips = document.getElementById("projectChips");
         chips.addEventListener("change", (e) => {
@@ -889,11 +900,34 @@
             // Basic validation: check if it's an array
             if (Array.isArray(importedData)) {
               ACTIVITIES = importedData;
-              saveActivities(); // Persist the new data to LocalStorage
-              // Re-initialize the project filters and render
-              updateProjectChips(); 
+              saveActivities(); 
+
+              // Update controls to reflect new data
+              updateProjectChips();
+              updateYearControls();
+
+              // Auto-adjust date range after import
+              if (ACTIVITIES.length > 0) {
+                const allDates = [];
+                ACTIVITIES.forEach(a => {
+                  allDates.push(parseYMD(a.start));
+                  if (a.end) {
+                    allDates.push(parseYMD(a.end));
+                  }
+                });
+
+                const minDate = new Date(Math.min.apply(null, allDates));
+                const maxDate = new Date(Math.max.apply(null, allDates));
+
+                document.getElementById('startYear').value = minDate.getFullYear();
+                document.getElementById('startMonth').value = minDate.getMonth();
+                document.getElementById('endYear').value = maxDate.getFullYear();
+                document.getElementById('endMonth').value = maxDate.getMonth();
+              }
+              
+              applyRange(); 
               render();
-              alert("Successfully imported activities.");
+              alert("Successfully imported activities and updated date range.");
             } else {
               alert("Import failed: JSON file is not a valid activity array.");
             }
