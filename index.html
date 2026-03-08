@@ -591,175 +591,8 @@
       const LOCAL_STORAGE_KEY = "saf-roadmap-activities";
 
       function getInitialData() {
-        // The original hardcoded data is now provided by this function.
-        return [
-          {
-            project: "Outage Phase 2",
-            title: "Requirement Collection",
-            start: "2025-09-01",
-            end: "2025-11-10",
-            dataLabel: "Sep–Nov",
-            status: "done",
-          },
-          {
-            project: "Site visit",
-            title: "Site Visit – Outage",
-            start: "2025-11-27",
-            end: "2025-11-27",
-            dataLabel: "27 Nov",
-            status: "done",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Paper Submission Process",
-            start: "2025-12-01",
-            end: "2026-01-31",
-            dataLabel: "Dec–Jan",
-            status: "done",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Solution Formation Team (SFT) Review",
-            start: "2025-12-02",
-            end: "2025-12-02",
-            dataLabel: "02 Dec",
-            status: "cancel",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Solution Formation Team (SFT) Review",
-            start: "2025-12-03",
-            end: "2025-12-03",
-            dataLabel: "03 Dec",
-            status: "new",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Project Review Board (PRB) Review",
-            start: "2025-12-02",
-            end: "2025-12-02",
-            dataLabel: "02 Dec",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Requirement Review Session (Working Level)",
-            start: "2025-12-05",
-            end: "2025-12-05",
-            dataLabel: "05 Dec",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Requirement Review Session (Department Head)",
-            start: "2025-12-17",
-            end: "2025-12-17",
-            dataLabel: "17 Dec",
-          },
-          {
-            project: "Site visit",
-            title: "Site Visit – Patrolman",
-            start: "2025-12-18",
-            end: "2025-12-18",
-            dataLabel: "18 Dec",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Paper Gate 1 Review",
-            start: "2025-12-22",
-            end: "2025-12-23",
-            dataLabel: "22–23 Dec",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Paper Gate 2 (SAB) Review",
-            start: "2025-12-29",
-            end: "2025-12-29",
-            dataLabel: "29 Dec",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Paper Gate 3 (PAB) Review",
-            start: "2026-01-05",
-            end: "2026-01-05",
-            dataLabel: "05 Jan",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "CIO Review & Approval",
-            start: "2026-01-15",
-            end: "2026-01-20",
-            dataLabel: "Mid Jan",
-          },
-          {
-            project: "Site visit",
-            title: "Site Visit – HSM",
-            start: "2026-01-15",
-            end: "2026-01-20",
-            dataLabel: "Mid Jan",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "FI Approval",
-            start: "2026-01-25",
-            end: "2026-01-31",
-            dataLabel: "End Jan",
-          },
-          {
-            project: "Outage Phase 2",
-            title: "Prioritize Business Requirements",
-            start: "2025-12-01",
-            end: "2026-01-31",
-            dataLabel: "Dec–Jan",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "Paper Submission Process",
-            start: "2026-01-01",
-            end: "2026-02-29",
-            dataLabel: "Jan–Feb",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "Solution Formation Team (SFT) Review",
-            start: "2026-02-10",
-            end: "2026-02-10",
-            dataLabel: "10 Feb",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "Project Review Board (PRB) Review",
-            start: "2026-02-15",
-            end: "2026-02-20",
-            dataLabel: "Mid Feb",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "Paper Gate 1 Review",
-            start: "2026-02-25",
-            end: "2026-02-29",
-            dataLabel: "End Feb",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "Paper Gate 2 (SAB) Review",
-            start: "2026-03-05",
-            end: "2026-03-10",
-            dataLabel: "Early Mar",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "Paper Gate 3 (PAB) Review",
-            start: "2026-03-15",
-            end: "2026-03-20",
-            dataLabel: "Mid Mar",
-          },
-          {
-            project: "HSM + Patrolman Phase 1",
-            title: "CIO Review & Approval",
-            start: "2026-03-25",
-            end: "2026-03-31",
-            dataLabel: "End Mar",
-          },
-        ];
+        // Return an empty array instead of hardcoded data.
+        return [];
       }
 
       function saveActivities() {
@@ -773,14 +606,11 @@
             return JSON.parse(savedData);
           } catch (e) {
             console.error("Error parsing activities from LocalStorage", e);
-            // If parsing fails, fall back to initial data
-            return getInitialData();
+            return getInitialData(); // Fallback to empty
           }
         } else {
-          // If no data in LocalStorage, use initial data and save it.
-          const initialData = getInitialData();
-          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialData));
-          return initialData;
+          // If no data in LocalStorage, return an empty array.
+          return getInitialData();
         }
       }
 
