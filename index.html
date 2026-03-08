@@ -58,9 +58,26 @@
       }
       .controls {
         display: grid;
-        grid-template-columns: 0.5fr 1.2fr 0.5fr 1.2fr 1.6fr auto auto;
+        grid-template-columns: auto auto auto auto auto 1fr auto;
         gap: 12px;
         align-items: end;
+      }
+      .filter-separator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 10px;
+      }
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      .month-selector {
+        display: grid;
+        grid-template-columns: max-content max-content;
+        gap: 8px;
       }
       .controls label {
         font-size: 12px;
@@ -537,9 +554,13 @@
           </select>
         </div>
         <div>
-          <label>Start 月份（例：Nov 2025 或 2025-11）</label>
-          <input id="startInput" type="text" placeholder="Nov 2025" />
+          <label>Start Month</label>
+          <div class="month-selector">
+            <select id="startMonth"></select>
+            <select id="startYear"></select>
+          </div>
         </div>
+        <div class="filter-separator">-</div>
         <div>
           <label>End 條件</label>
           <select id="endCond">
@@ -548,17 +569,22 @@
           </select>
         </div>
         <div>
-          <label>End 月份（例：Mar 2026 或 2026-03）</label>
-          <input id="endInput" type="text" placeholder="Mar 2026" />
+          <label>End Month</label>
+          <div class="month-selector">
+            <select id="endMonth"></select>
+            <select id="endYear"></select>
+          </div>
         </div>
         <div>
           <label>Filter by Project（可複選）</label>
           <div id="projectChips" class="chips"></div>
         </div>
-        <button id="applyBtn" class="btn primary">Apply</button>
-        <button id="resetBtn" class="btn">Reset</button>
-        <button id="exportJsonBtn" class="btn">Export JSON</button>
-        <button id="importJsonBtn" class="btn">Import JSON</button>
+        <div class="button-group">
+          <button id="applyBtn" class="btn primary">Apply</button>
+          <button id="resetBtn" class="btn">Reset</button>
+          <button id="exportJsonBtn" class="btn">Export JSON</button>
+          <button id="importJsonBtn" class="btn">Import JSON</button>
+        </div>
         <input type="file" id="json-importer" style="display: none;" accept=".json,application/json">
       </div>
       <div id="msg" class="notice"></div>
@@ -751,6 +777,26 @@
       function initControls() {
         updateProjectChips();
 
+        const startMonthSelect = document.getElementById("startMonth");
+        const startYearSelect = document.getElementById("startYear");
+        const endMonthSelect = document.getElementById("endMonth");
+        const endYearSelect = document.getElementById("endYear");
+
+        // Populate month dropdowns
+        MONTHS.forEach((month, i) => {
+          startMonthSelect.add(new Option(month, i));
+          endMonthSelect.add(new Option(month, i));
+        });
+
+        // Populate year dropdowns based on activity data
+        const years = Array.from(new Set(ACTIVITIES.map(a => parseYMD(a.start).getFullYear())));
+        const minYear = years.length > 0 ? Math.min(...years) : new Date().getFullYear() - 1;
+        const maxYear = years.length > 0 ? Math.max(...years) : new Date().getFullYear() + 1;
+        for (let y = minYear - 2; y <= maxYear + 2; y++) {
+          startYearSelect.add(new Option(y, y));
+          endYearSelect.add(new Option(y, y));
+        }
+
         const chips = document.getElementById("projectChips");
         chips.addEventListener("change", (e) => {
           const cb = e.target.closest('input[type="checkbox"]');
@@ -776,18 +822,23 @@
         });
 
         document.getElementById("startCond").value = "<";
-        document.getElementById("startInput").value = "Nov 2025";
+        startMonthSelect.value = "10";
+        startYearSelect.value = "2025";
         document.getElementById("endCond").value = ">";
-        document.getElementById("endInput").value = "Mar 2026";
+        endMonthSelect.value = "2";
+        endYearSelect.value = "2026";
+        
         document.getElementById("applyBtn").addEventListener("click", () => {
           applyRange();
           render();
         });
         document.getElementById("resetBtn").addEventListener("click", () => {
           document.getElementById("startCond").value = "<";
-          document.getElementById("startInput").value = "Nov 2025";
+          startMonthSelect.value = "10";
+          startYearSelect.value = "2025";
           document.getElementById("endCond").value = ">";
-          document.getElementById("endInput").value = "Mar 2026";
+          endMonthSelect.value = "2";
+          endYearSelect.value = "2026";
           updateProjectChips();
           applyRange();
           render();
@@ -861,24 +912,17 @@
       function applyRange() {
         const sCondRaw = document.getElementById("startCond").value;
         const eCondRaw = document.getElementById("endCond").value;
-        const sInp = document.getElementById("startInput").value;
-        const eInp = document.getElementById("endInput").value;
-        const minDate = new Date(
-          Math.min(...ACTIVITIES.map((a) => parseYMD(a.start))),
-        );
-        const maxDate = new Date(
-          Math.max(...ACTIVITIES.map((a) => parseYMD(a.end || a.start))),
-        );
-        let s = parseMonthInput(sInp) || {
-          y: minDate.getFullYear(),
-          m: minDate.getMonth(),
-        };
-        let e = parseMonthInput(eInp) || {
-          y: maxDate.getFullYear(),
-          m: maxDate.getMonth(),
-        };
-        let visStart = bom(s.y, s.m),
-          visEnd = eom(e.y, e.m);
+        
+        const startYear = parseInt(document.getElementById("startYear").value);
+        const startMonth = parseInt(document.getElementById("startMonth").value);
+        const endYear = parseInt(document.getElementById("endYear").value);
+        const endMonth = parseInt(document.getElementById("endMonth").value);
+
+        let s = { y: startYear, m: startMonth };
+        let e = { y: endYear, m: endMonth };
+        
+        let visStart = bom(s.y, s.m);
+        let visEnd = eom(e.y, e.m);
         const sCond = sCondRaw === "<" || sCondRaw === "=" ? sCondRaw : "=";
         const eCond = eCondRaw === "=" || eCondRaw === ">" ? eCondRaw : "=";
         if (visStart > visEnd)
