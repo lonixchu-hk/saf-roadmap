@@ -1444,7 +1444,11 @@
               upDownIndex++;
               const baseLeft = (leftIndex + offset) * segWidth;
               const centerShift = (segWidth - halfCardW) / 2;
-              card.style.left = baseLeft + centerShift + 10 + "px";
+              let cardLeft = baseLeft + centerShift;
+              if (i === 0 && offset === 0 && state.startCond === '=') {
+                cardLeft = baseLeft;
+              }
+              card.style.left = cardLeft + "px";
               const head = document.createElement("div");
               head.className = "m-header";
               const title = document.createElement("div");
