@@ -1382,6 +1382,32 @@
             }
           }
         }
+        if (state.endCond === '=') {
+          const lastMonthActivities = filtered.filter(a => {
+            const d = parseYMD(a.start);
+            return d.getFullYear() === state.end.getFullYear() && d.getMonth() === state.end.getMonth();
+          });
+          if (lastMonthActivities.length > 0) {
+            const secondHalfActivities = lastMonthActivities.filter(a => parseYMD(a.start).getDate() > 15);
+            if (secondHalfActivities.length > 0) {
+              const weeksRow = document.getElementById("weeksRow");
+              const PADDING_RATIO = 0.5;
+              const padding = document.createElement('div');
+              padding.className = 'week-cell';
+              padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
+
+              const yearPadding = padding.cloneNode();
+              const monthPadding = padding.cloneNode();
+
+              yearsRow.appendChild(yearPadding);
+              monthsRow.appendChild(monthPadding);
+              weeksRow.appendChild(padding);
+
+              board.style.width = totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+              cardsLayer.style.width = totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+            }
+          }
+        }
         months.forEach((mm, i) => {
           const leftIndex = monthStartSegIndex(mm.y, mm.m, segs);
           const isFirst = i === 0 && state.startCond === "<";
