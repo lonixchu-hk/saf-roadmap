@@ -1231,6 +1231,12 @@
         const filtered = ACTIVITIES.filter((a) =>
           state.selected.has(a.project),
         );
+
+        if (filtered.length === 0) {
+          cardsLayer.innerHTML = `<div class="empty" style="text-align: center; padding: 40px; margin: 20px auto; width: 300px;">No activities to display</div>`;
+          return;
+        }
+
         const grouped = groupByHalfMonthUnified(
           filtered,
           segs,
