@@ -164,7 +164,6 @@
         top: 0;
         background: #fff;
         z-index: 6;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
       }
       .year-seg {
@@ -177,13 +176,13 @@
         letter-spacing: 0.3px;
         color: #1f2937;
         border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
       }
       .months {
         position: sticky;
         top: 32px;
         background: #fff;
         z-index: 5;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
       }
       .month-cell {
@@ -194,6 +193,7 @@
         font-weight: 800;
         height: 40px;
         border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
       }
       .month-link {
         color: #0f172a;
@@ -209,7 +209,6 @@
         top: 72px;
         background: #fff;
         z-index: 5;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
       }
       .week-cell {
@@ -221,6 +220,7 @@
         font-size: 12px;
         color: #1f2937;
         border-right: 1px dashed #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
       }
       .week-cell.full {
         flex: 0 0 calc(var(--half-width) * 2);
@@ -1162,6 +1162,7 @@
         const board = document.getElementById("board");
         const cardsLayer = document.getElementById("cardsLayer");
         const scroller = document.getElementById("scroller");
+        let extraLeftPadding = 0;
         yearsRow.innerHTML = "";
         monthsRow.innerHTML = "";
         weeksRow.innerHTML = "";
@@ -1280,17 +1281,19 @@
           const yearIndex = (mm.y - firstYear) % 2;
           band.classList.add(yearIndex === 0 ? "year-a" : "year-b");
           if (i % 2 === 1) band.classList.add("alt");
-          band.style.left = xMonthStart + "px";
+          band.style.left = xMonthStart + extraLeftPadding + "px";
           band.style.width = 2 * segWidth + "px";
           board.appendChild(band);
           const div = document.createElement("div");
           div.className = "month-divider";
-          div.style.left = xMonthStart + "px";
+          div.style.left = xMonthStart + extraLeftPadding + "px";
           board.appendChild(div);
           [1, 8, 15, 22].forEach((d) => {
             if (d > mm.days) return;
             const x =
-              xMonthStart + Math.round(((d - 1) / mm.days) * (2 * segWidth));
+              xMonthStart +
+              extraLeftPadding +
+              Math.round(((d - 1) / mm.days) * (2 * segWidth));
             const t = document.createElement("div");
             t.className = "week-tick";
             t.style.left = x + "px";
@@ -1309,6 +1312,7 @@
             const xMonthStart = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
             const x =
               xMonthStart +
+              extraLeftPadding +
               Math.round(((today.getDate() - 1) / mm.days) * (2 * segWidth));
             const tl = document.createElement("div");
             tl.className = "today-line";
@@ -1346,6 +1350,71 @@
           return v === "1" || /^(true)$/i.test(v);
         })();
 
+        if (state.startCond === "=") {
+          const firstMonthActivities = filtered.filter((a) => {
+            const d = parseYMD(a.start);
+            return (
+              d.getFullYear() === state.start.getFullYear() &&
+              d.getMonth() === state.start.getMonth()
+            );
+          });
+          if (firstMonthActivities.length > 0) {
+            const firstHalfActivities = firstMonthActivities.filter(
+              (a) => parseYMD(a.start).getDate() <= 15,
+            );
+            if (firstHalfActivities.length > 0) {
+              const weeksRow = document.getElementById("weeksRow");
+              const PADDING_RATIO = 0.5;
+              const padding = document.createElement("div");
+              padding.className = "week-cell";
+              padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
+
+              const yearPadding = padding.cloneNode();
+              const monthPadding = padding.cloneNode();
+
+              yearsRow.insertBefore(yearPadding, yearsRow.firstChild);
+              monthsRow.insertBefore(monthPadding, monthsRow.firstChild);
+              weeksRow.insertBefore(padding, weeksRow.firstChild);
+
+              extraLeftPadding = segWidth * PADDING_RATIO;
+              board.style.width = totalWidth + extraLeftPadding + "px";
+              cardsLayer.style.width = totalWidth + extraLeftPadding + "px";
+            }
+          }
+        }
+        if (state.endCond === "=") {
+          const lastMonthActivities = filtered.filter((a) => {
+            const d = parseYMD(a.start);
+            return (
+              d.getFullYear() === state.end.getFullYear() &&
+              d.getMonth() === state.end.getMonth()
+            );
+          });
+          if (lastMonthActivities.length > 0) {
+            const secondHalfActivities = lastMonthActivities.filter(
+              (a) => parseYMD(a.start).getDate() > 15,
+            );
+            if (secondHalfActivities.length > 0) {
+              const weeksRow = document.getElementById("weeksRow");
+              const PADDING_RATIO = 0.5;
+              const padding = document.createElement("div");
+              padding.className = "week-cell";
+              padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
+
+              const yearPadding = padding.cloneNode();
+              const monthPadding = padding.cloneNode();
+
+              yearsRow.appendChild(yearPadding);
+              monthsRow.appendChild(monthPadding);
+              weeksRow.appendChild(padding);
+
+              board.style.width =
+                totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+              cardsLayer.style.width =
+                totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+            }
+          }
+        }
         months.forEach((mm, i) => {
           const leftIndex = monthStartSegIndex(mm.y, mm.m, segs);
           const isFirst = i === 0 && state.startCond === "<";
@@ -1370,7 +1439,7 @@
             card.classList.add(upDownIndex % 2 === 0 ? "up" : "down");
             upDownIndex++;
             const baseLeft = leftIndex * segWidth;
-            card.style.left = baseLeft + 10 + "px";
+            card.style.left = baseLeft + 10 + extraLeftPadding + "px";
             const head = document.createElement("div");
             head.className = "m-header";
             const title = document.createElement("div");
@@ -1444,7 +1513,11 @@
               upDownIndex++;
               const baseLeft = (leftIndex + offset) * segWidth;
               const centerShift = (segWidth - halfCardW) / 2;
-              card.style.left = baseLeft + centerShift + 10 + "px";
+              let cardLeft = baseLeft + centerShift;
+              if (i === 0 && offset === 0 && state.startCond === "=") {
+                cardLeft = centerShift;
+              }
+              card.style.left = cardLeft + extraLeftPadding + "px";
               const head = document.createElement("div");
               head.className = "m-header";
               const title = document.createElement("div");
