@@ -58,13 +58,25 @@
       }
       .controls {
         display: grid;
-        grid-template-columns: 0.5fr 1.2fr 0.5fr 1.2fr 1.6fr auto auto;
+        grid-template-columns: auto auto auto auto auto 1fr auto;
         gap: 12px;
         align-items: end;
       }
+      .filter-separator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 10px;
+      }
+      .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
       .month-selector {
         display: grid;
-        grid-template-columns: 1fr auto;
+        grid-template-columns: max-content max-content;
         gap: 8px;
       }
       .controls label {
@@ -548,6 +560,7 @@
             <select id="startYear"></select>
           </div>
         </div>
+        <div class="filter-separator">-</div>
         <div>
           <label>End 條件</label>
           <select id="endCond">
@@ -566,10 +579,12 @@
           <label>Filter by Project（可複選）</label>
           <div id="projectChips" class="chips"></div>
         </div>
-        <button id="applyBtn" class="btn primary">Apply</button>
-        <button id="resetBtn" class="btn">Reset</button>
-        <button id="exportJsonBtn" class="btn">Export JSON</button>
-        <button id="importJsonBtn" class="btn">Import JSON</button>
+        <div class="button-group">
+          <button id="applyBtn" class="btn primary">Apply</button>
+          <button id="resetBtn" class="btn">Reset</button>
+          <button id="exportJsonBtn" class="btn">Export JSON</button>
+          <button id="importJsonBtn" class="btn">Import JSON</button>
+        </div>
         <input type="file" id="json-importer" style="display: none;" accept=".json,application/json">
       </div>
       <div id="msg" class="notice"></div>
