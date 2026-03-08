@@ -164,7 +164,6 @@
         top: 0;
         background: #fff;
         z-index: 6;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
       }
       .year-seg {
@@ -177,13 +176,13 @@
         letter-spacing: 0.3px;
         color: #1f2937;
         border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
       }
       .months {
         position: sticky;
         top: 32px;
         background: #fff;
         z-index: 5;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
       }
       .month-cell {
@@ -194,6 +193,7 @@
         font-weight: 800;
         height: 40px;
         border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
       }
       .month-link {
         color: #0f172a;
@@ -209,7 +209,6 @@
         top: 72px;
         background: #fff;
         z-index: 5;
-        border-bottom: 1px solid #e5e7eb;
         display: flex;
       }
       .week-cell {
@@ -221,6 +220,7 @@
         font-size: 12px;
         color: #1f2937;
         border-right: 1px dashed #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
       }
       .week-cell.full {
         flex: 0 0 calc(var(--half-width) * 2);
@@ -1382,18 +1382,23 @@
             }
           }
         }
-        if (state.endCond === '=') {
-          const lastMonthActivities = filtered.filter(a => {
+        if (state.endCond === "=") {
+          const lastMonthActivities = filtered.filter((a) => {
             const d = parseYMD(a.start);
-            return d.getFullYear() === state.end.getFullYear() && d.getMonth() === state.end.getMonth();
+            return (
+              d.getFullYear() === state.end.getFullYear() &&
+              d.getMonth() === state.end.getMonth()
+            );
           });
           if (lastMonthActivities.length > 0) {
-            const secondHalfActivities = lastMonthActivities.filter(a => parseYMD(a.start).getDate() > 15);
+            const secondHalfActivities = lastMonthActivities.filter(
+              (a) => parseYMD(a.start).getDate() > 15,
+            );
             if (secondHalfActivities.length > 0) {
               const weeksRow = document.getElementById("weeksRow");
               const PADDING_RATIO = 0.5;
-              const padding = document.createElement('div');
-              padding.className = 'week-cell';
+              const padding = document.createElement("div");
+              padding.className = "week-cell";
               padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
 
               const yearPadding = padding.cloneNode();
@@ -1403,8 +1408,10 @@
               monthsRow.appendChild(monthPadding);
               weeksRow.appendChild(padding);
 
-              board.style.width = totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
-              cardsLayer.style.width = totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+              board.style.width =
+                totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+              cardsLayer.style.width =
+                totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
             }
           }
         }
