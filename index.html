@@ -1828,6 +1828,8 @@
         // Use a container that is definitely visible and scrollable
         const scroller = document.getElementById('scroller');
         const content = document.querySelector('.content');
+        const originalPaddingTop = content.style.paddingTop;
+        content.style.paddingTop = '20px'; // Add 20px padding on top
         
         // We need to capture the 'content' inside the 'scroller' as it holds the actual chart width
         const originalScrollerMaxHeight = scroller.style.maxHeight;
@@ -1845,6 +1847,7 @@
         }).then(canvas => {
             // Restore scroller style
             scroller.style.maxHeight = originalScrollerMaxHeight;
+            content.style.paddingTop = originalPaddingTop;
 
             if (format === 'png') {
                 const imgData = canvas.toDataURL('image/png');
@@ -1872,6 +1875,7 @@
             alert('Could not generate chart image. See console for details.');
             // Restore scroller style even on error
             scroller.style.maxHeight = originalScrollerMaxHeight;
+            content.style.paddingTop = originalPaddingTop;
         });
       });
 
