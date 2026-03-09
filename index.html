@@ -176,6 +176,7 @@
         letter-spacing: 0.3px;
         color: #1f2937;
         border-right: 1px solid #e5e7eb;
+        border-left: 1px solid #e5e7eb;
         border-bottom: 1px solid #e5e7eb;
       }
       .months {
@@ -192,8 +193,23 @@
         position: relative;
         font-weight: 800;
         height: 40px;
+        border-left: 1px solid #e5e7eb;
         border-right: 1px solid #e5e7eb;
         border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .btn-toggle-month {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        width: 16px;
+        height: 16px;
       }
       .month-link {
         color: #0f172a;
@@ -211,6 +227,14 @@
         z-index: 5;
         display: flex;
       }
+      .buffer-cell {
+        flex: 0 0 var(--half-width);
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+      }
       .week-cell {
         flex: 0 0 var(--half-width);
         height: 28px;
@@ -220,6 +244,7 @@
         font-size: 12px;
         color: #1f2937;
         border-right: 1px dashed #e5e7eb;
+        border-left: 1px dashed #e5e7eb;
         border-bottom: 1px solid #e5e7eb;
       }
       .week-cell.full {
@@ -621,6 +646,10 @@
     </div>
 
     <script>
+      // ========= SVG Icons =========
+      const ICON_EXPAND = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="#3b82f6" stroke-width="2"/><line x1="8" y1="4" x2="8" y2="12" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="8" x2="12" y2="8" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>`;
+      const ICON_COLLAPSE = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="2" stroke="#3b82f6" stroke-width="2"/><line x1="4" y1="8" x2="12" y2="8" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/></svg>`;
+
       // ========= LocalStorage Persistence =========
       const LOCAL_STORAGE_KEY = "saf-roadmap-activities";
 
@@ -725,6 +754,7 @@
         projects: [],
         selected: new Set(),
         segWidth: 300,
+        collapsedMonths: new Set(),
       };
 
       // ========= Project Legend =========
@@ -1155,7 +1185,7 @@
           ) || state.segWidth;
         const months = monthsBetween(state.start, state.end);
         const segs = halfMonthsBetween(state.start, state.end);
-        const totalWidth = segs.length * segWidth;
+
         const yearsRow = document.getElementById("yearsRow");
         const monthsRow = document.getElementById("monthsRow");
         const weeksRow = document.getElementById("weeksRow");
@@ -1166,41 +1196,104 @@
         yearsRow.innerHTML = "";
         monthsRow.innerHTML = "";
         weeksRow.innerHTML = "";
+
+        // Recalculate total width based on collapsed months
+        let totalWidth = 0;
+        months.forEach((m, i) => {
+          const monthKey = `${m.y}-${m.m}`;
+          const isFirst = i === 0 && state.startCond === "<";
+          const isLast = i === months.length - 1 && state.endCond === ">";
+          const isSingleCol =
+            isFirst || isLast || state.collapsedMonths.has(monthKey);
+          totalWidth += isSingleCol ? segWidth : segWidth * 2;
+        });
+
         board.style.width = totalWidth + "px";
         cardsLayer.style.width = totalWidth + "px";
 
-        // 年份段
+        // 年份段 (Year segments)
         const firstYear = months.length
           ? months[0].y
           : new Date().getFullYear();
         for (let i = 0; i < months.length; ) {
           const y = months[i].y;
           let count = 0;
-          while (i + count < months.length && months[i + count].y === y)
+          let yearWidth = 0;
+          while (i + count < months.length && months[i + count].y === y) {
+            const m = months[i + count];
+            const monthKey = `${m.y}-${m.m}`;
+            const isFirst = i + count === 0 && state.startCond === "<";
+            const isLast =
+              i + count === months.length - 1 && state.endCond === ">";
+            const isSingleCol =
+              isFirst || isLast || state.collapsedMonths.has(monthKey);
+            yearWidth += isSingleCol ? segWidth : segWidth * 2;
             count++;
+          }
           const seg = document.createElement("div");
           seg.className = "year-seg";
-          seg.style.flex = `0 0 ${count * 2 * segWidth}px`;
+          seg.style.flex = `0 0 ${yearWidth}px`;
           seg.textContent = y;
           yearsRow.appendChild(seg);
           i += count;
         }
 
-        // 月份標題
+        // 月份標題 (Month headers)
         months.forEach((mm, i) => {
           const cell = document.createElement("div");
           cell.className = "month-cell";
+          const monthKey = `${mm.y}-${mm.m}`;
+          const isCollapsed = state.collapsedMonths.has(monthKey);
+          const isFirst = i === 0 && state.startCond === "<";
+          const isLast = i === months.length - 1 && state.endCond === ">";
+          const isSingleCol = isFirst || isLast || isCollapsed;
+
+          if (isSingleCol) {
+            cell.style.flex = `0 0 ${segWidth}px`;
+          }
+
+          if (!isFirst && !isLast) {
+            // Add collapse/expand button only for non-merged months
+            const toggleBtn = document.createElement("button");
+            toggleBtn.className = "btn-toggle-month";
+            toggleBtn.innerHTML = isCollapsed ? ICON_EXPAND : ICON_COLLAPSE;
+            toggleBtn.title = isCollapsed ? "Expand" : "Collapse";
+            toggleBtn.addEventListener("click", () => {
+              if (isCollapsed) {
+                state.collapsedMonths.delete(monthKey);
+              } else {
+                state.collapsedMonths.add(monthKey);
+              }
+              render();
+            });
+            cell.appendChild(toggleBtn);
+          }
+
           let label = MONTHS[mm.m].toUpperCase();
           if (i === 0 && state.startCond === "<") label = `<<<<<< ${label}`;
           if (i === months.length - 1 && state.endCond === ">")
             label = `${label} >>>>>>`;
+
           const a = document.createElement("a");
           a.href = "javascript:void(0)";
           a.className = "month-link";
           a.textContent = label;
           a.title = `${MONTHS[mm.m]} ${mm.y}`;
           a.addEventListener("click", () => {
-            const left = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
+            // Find the correct scroll position considering collapsed months
+            let left = 0;
+            for (let j = 0; j < i; j++) {
+              const prevMonthKey = `${months[j].y}-${months[j].m}`;
+              const prevIsFirst = j === 0 && state.startCond === "<";
+              const prevIsLast =
+                j === months.length - 1 && state.endCond === ">";
+              const prevIsSingleCol =
+                prevIsFirst ||
+                prevIsLast ||
+                state.collapsedMonths.has(prevMonthKey);
+              left += prevIsSingleCol ? segWidth : segWidth * 2;
+            }
+
             scroller.scrollTo({ left: left - 16, behavior: "smooth" });
             const card =
               document.getElementById(
@@ -1223,18 +1316,34 @@
           monthsRow.appendChild(cell);
         });
 
-        // 週標籤（邊界月回復為 .week-cell.full 兩欄寬）
+        // 週標籤（邊界月回復為 .week-cell.full 兩欄寬） (Week labels)
         months.forEach((mm, i) => {
-          const leftIndex = monthStartSegIndex(mm.y, mm.m, segs);
           const isFirst = i === 0 && state.startCond === "<";
           const isLast = i === months.length - 1 && state.endCond === ">";
-          if (isFirst || isLast) {
+          const monthKey = `${mm.y}-${mm.m}`;
+          const isCollapsed = state.collapsedMonths.has(monthKey);
+          const isSingleCol = isFirst || isLast || isCollapsed;
+
+          let currentLeft = 0;
+          for (let j = 0; j < i; j++) {
+            const prevMonthKey = `${months[j].y}-${months[j].m}`;
+            const prevIsFirst = j === 0 && state.startCond === "<";
+            const prevIsLast = j === months.length - 1 && state.endCond === ">";
+            const prevIsSingleCol =
+              prevIsFirst ||
+              prevIsLast ||
+              state.collapsedMonths.has(prevMonthKey);
+            currentLeft += prevIsSingleCol ? segWidth : segWidth * 2;
+          }
+
+          if (isSingleCol) {
             const w = document.createElement("div");
             w.className = "week-cell full";
+            w.style.flex = `0 0 ${segWidth}px`;
             w.textContent = "---------";
             w.addEventListener("click", () =>
               scroller.scrollTo({
-                left: leftIndex * segWidth - 16,
+                left: currentLeft - 16,
                 behavior: "smooth",
               }),
             );
@@ -1250,13 +1359,13 @@
             w2.textContent = "Week 03–04";
             w1.addEventListener("click", () =>
               scroller.scrollTo({
-                left: leftIndex * segWidth - 16,
+                left: currentLeft - 16,
                 behavior: "smooth",
               }),
             );
             w2.addEventListener("click", () =>
               scroller.scrollTo({
-                left: (leftIndex + 1) * segWidth - 16,
+                left: currentLeft + segWidth - 16,
                 behavior: "smooth",
               }),
             );
@@ -1274,31 +1383,40 @@
         cardsLayer.replaceChildren();
 
         // 背景色 + 月分隔線 + 週刻度
+        let currentX = extraLeftPadding;
         months.forEach((mm, i) => {
-          const xMonthStart = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
+          const monthKey = `${mm.y}-${mm.m}`;
+          const isCollapsed = state.collapsedMonths.has(monthKey);
+          const isFirst = i === 0 && state.startCond === "<";
+          const isLast = i === months.length - 1 && state.endCond === ">";
+          const isSingleCol = isFirst || isLast || isCollapsed;
+          const monthWidth = isSingleCol ? segWidth : segWidth * 2;
+
           const band = document.createElement("div");
           band.className = "month-band";
           const yearIndex = (mm.y - firstYear) % 2;
           band.classList.add(yearIndex === 0 ? "year-a" : "year-b");
           if (i % 2 === 1) band.classList.add("alt");
-          band.style.left = xMonthStart + extraLeftPadding + "px";
-          band.style.width = 2 * segWidth + "px";
+          band.style.left = currentX + "px";
+          band.style.width = monthWidth + "px";
           board.appendChild(band);
+
           const div = document.createElement("div");
           div.className = "month-divider";
-          div.style.left = xMonthStart + extraLeftPadding + "px";
+          div.style.left = currentX + "px";
           board.appendChild(div);
-          [1, 8, 15, 22].forEach((d) => {
-            if (d > mm.days) return;
-            const x =
-              xMonthStart +
-              extraLeftPadding +
-              Math.round(((d - 1) / mm.days) * (2 * segWidth));
-            const t = document.createElement("div");
-            t.className = "week-tick";
-            t.style.left = x + "px";
-            board.appendChild(t);
-          });
+
+          if (!isSingleCol) {
+            [1, 8, 15, 22].forEach((d) => {
+              if (d > mm.days) return;
+              const x = currentX + Math.round(((d - 1) / mm.days) * monthWidth);
+              const t = document.createElement("div");
+              t.className = "week-tick";
+              t.style.left = x + "px";
+              board.appendChild(t);
+            });
+          }
+          currentX += monthWidth;
         });
 
         // 今天線
@@ -1309,11 +1427,21 @@
           );
           if (idxMonth !== -1) {
             const mm = months[idxMonth];
-            const xMonthStart = monthStartSegIndex(mm.y, mm.m, segs) * segWidth;
+            let todayX = extraLeftPadding;
+            for (let i = 0; i < idxMonth; i++) {
+              const prevMonthKey = `${months[i].y}-${months[i].m}`;
+              todayX += state.collapsedMonths.has(prevMonthKey)
+                ? segWidth
+                : segWidth * 2;
+            }
+
+            const monthKey = `${mm.y}-${mm.m}`;
+            const isCollapsed = state.collapsedMonths.has(monthKey);
+            const monthWidth = isCollapsed ? segWidth : segWidth * 2;
+
             const x =
-              xMonthStart +
-              extraLeftPadding +
-              Math.round(((today.getDate() - 1) / mm.days) * (2 * segWidth));
+              todayX +
+              Math.round(((today.getDate() - 1) / mm.days) * monthWidth);
             const tl = document.createElement("div");
             tl.className = "today-line";
             tl.style.left = x + "px";
@@ -1350,7 +1478,28 @@
           return v === "1" || /^(true)$/i.test(v);
         })();
 
-        if (state.startCond === "=") {
+        if (state.startCond === "<") {
+          const oneMonthAfterStart = new Date(state.start);
+          oneMonthAfterStart.setMonth(oneMonthAfterStart.getMonth() + 1);
+          const beforeActivities = filtered.filter(
+            (a) => parseYMD(a.start) < oneMonthAfterStart,
+          );
+          if (beforeActivities.length > 0) {
+            const weeksRow = document.getElementById("weeksRow");
+            const PADDING_RATIO = 0.5;
+            const padding = document.createElement("div");
+            padding.className = "buffer-cell";
+            padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
+            const yearPadding = padding.cloneNode();
+            const monthPadding = padding.cloneNode();
+            yearsRow.insertBefore(yearPadding, yearsRow.firstChild);
+            monthsRow.insertBefore(monthPadding, monthsRow.firstChild);
+            weeksRow.insertBefore(padding, weeksRow.firstChild);
+            extraLeftPadding = segWidth * PADDING_RATIO;
+            board.style.width = totalWidth + extraLeftPadding + "px";
+            cardsLayer.style.width = totalWidth + extraLeftPadding + "px";
+          }
+        } else if (state.startCond === "=") {
           const firstMonthActivities = filtered.filter((a) => {
             const d = parseYMD(a.start);
             return (
@@ -1366,22 +1515,20 @@
               const weeksRow = document.getElementById("weeksRow");
               const PADDING_RATIO = 0.5;
               const padding = document.createElement("div");
-              padding.className = "week-cell";
+              padding.className = "buffer-cell";
               padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
-
               const yearPadding = padding.cloneNode();
               const monthPadding = padding.cloneNode();
-
               yearsRow.insertBefore(yearPadding, yearsRow.firstChild);
               monthsRow.insertBefore(monthPadding, monthsRow.firstChild);
               weeksRow.insertBefore(padding, weeksRow.firstChild);
-
               extraLeftPadding = segWidth * PADDING_RATIO;
               board.style.width = totalWidth + extraLeftPadding + "px";
               cardsLayer.style.width = totalWidth + extraLeftPadding + "px";
             }
           }
         }
+
         if (state.endCond === "=") {
           const lastMonthActivities = filtered.filter((a) => {
             const d = parseYMD(a.start);
@@ -1398,30 +1545,55 @@
               const weeksRow = document.getElementById("weeksRow");
               const PADDING_RATIO = 0.5;
               const padding = document.createElement("div");
-              padding.className = "week-cell";
+              padding.className = "buffer-cell";
               padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
-
               const yearPadding = padding.cloneNode();
               const monthPadding = padding.cloneNode();
-
               yearsRow.appendChild(yearPadding);
               monthsRow.appendChild(monthPadding);
               weeksRow.appendChild(padding);
-
               board.style.width =
                 totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
               cardsLayer.style.width =
                 totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
             }
           }
+        } else if (state.endCond === ">") {
+          const oneMonthBeforeEnd = new Date(state.end);
+          oneMonthBeforeEnd.setMonth(oneMonthBeforeEnd.getMonth() - 1);
+          const afterActivities = filtered.filter(
+            (a) => parseYMD(a.start) > oneMonthBeforeEnd,
+          );
+          if (afterActivities.length > 0) {
+            const weeksRow = document.getElementById("weeksRow");
+            const PADDING_RATIO = 0.5;
+            const padding = document.createElement("div");
+            padding.className = "buffer-cell";
+            padding.style.flex = `0 0 ${segWidth * PADDING_RATIO}px`;
+            const yearPadding = padding.cloneNode();
+            const monthPadding = padding.cloneNode();
+            yearsRow.appendChild(yearPadding);
+            monthsRow.appendChild(monthPadding);
+            weeksRow.appendChild(padding);
+            board.style.width =
+              totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+            cardsLayer.style.width =
+              totalWidth + extraLeftPadding + segWidth * PADDING_RATIO + "px";
+          }
         }
+
+        let monthX = extraLeftPadding;
         months.forEach((mm, i) => {
-          const leftIndex = monthStartSegIndex(mm.y, mm.m, segs);
+          const monthKey = `${mm.y}-${mm.m}`;
+          const isCollapsed = state.collapsedMonths.has(monthKey);
           const isFirst = i === 0 && state.startCond === "<";
           const isLast = i === months.length - 1 && state.endCond === ">";
+          const isSingleCol = isFirst || isLast || isCollapsed;
+
           const k1 = `${mm.y}-${String(mm.m + 1).padStart(2, "0")}-H1`;
           const k2 = `${mm.y}-${String(mm.m + 1).padStart(2, "0")}-H2`;
-          if (isFirst || isLast) {
+
+          if (isSingleCol) {
             const itemsRaw = [
               ...(grouped.get(k1)?.items || []),
               ...(grouped.get(k2)?.items || []),
@@ -1433,76 +1605,81 @@
               seen.add(u);
               return true;
             });
-            const card = document.createElement("div");
-            card.className = "month-card full";
-            card.id = `card-${mm.y}-${String(mm.m + 1).padStart(2, "0")}-FULL`;
-            card.classList.add(upDownIndex % 2 === 0 ? "up" : "down");
-            upDownIndex++;
-            const baseLeft = leftIndex * segWidth;
-            card.style.left = baseLeft + 10 + extraLeftPadding + "px";
-            const head = document.createElement("div");
-            head.className = "m-header";
-            const title = document.createElement("div");
-            title.className = "m-title";
-            title.textContent = "";
-            const meta = document.createElement("div");
-            meta.className = "m-meta";
-            meta.textContent = `${items.length} activities`;
-            head.appendChild(title);
-            if (showMeta) head.appendChild(meta);
-            card.appendChild(head);
-            const body = document.createElement("div");
-            body.className = "m-body";
-            if (items.length === 0) {
-              const empty = document.createElement("div");
-              empty.className = "empty";
-              empty.textContent = "No activities";
-              body.appendChild(empty);
-            } else {
-              items.forEach((it) => {
-                const row = document.createElement("div");
-                row.className = "mi";
-                const color = projectColor(it.project);
-                const textColor = `#${color.text}`;
-                const bgColor = `#${color.bg}`;
-                let badgeTxt =
-                  it.dateLabel && String(it.dateLabel).trim()
-                    ? it.dateLabel
-                    : `${MONTHS[mm.m]} ${it.date.getDate().toString().padStart(2, "0")}`;
-                const status = (it.status || "").toLowerCase();
-                row.classList.toggle("status-done", status === "done");
-                row.classList.toggle("status-cancel", status === "cancel");
-                row.classList.toggle("status-new", status === "new");
-                const newBadgeHTML =
-                  status === "new" ? `<span class="new-badge">NEW</span>` : "";
-                const badgeHTML =
-                  status === "cancel"
-                    ? `<span class=\"date-badge\" style=\"background: var(--status-cancel-badge-bg)\"><span class=\"dot\" style=\"background:#94a3b8\"></span><span class=\"date-text\">${badgeTxt}</span></span>`
-                    : `<span class=\"date-badge\" style=\"background:${bgColor}\"><span class=\"dot\" style=\"background:${textColor}\"></span><span class=\"date-text\" style=\"color:${textColor};font-weight:500;\">${badgeTxt}</span></span>`;
-                row.innerHTML =
-                  `<span class=\"mi-flag\"></span>` +
-                  newBadgeHTML +
-                  badgeHTML +
-                  `<div><div class=\"title\">${it.title}</div></div>`;
-                body.appendChild(row);
-              });
+
+            if (items.length !== 0) {
+              const card = document.createElement("div");
+              card.className = "month-card half"; // Use half to match width
+              card.id = `card-${mm.y}-${String(mm.m + 1).padStart(2, "0")}-SINGLE`;
+              card.classList.add(upDownIndex % 2 === 0 ? "up" : "down");
+              upDownIndex++;
+              card.style.left = monthX + (segWidth - halfCardW) / 2 + "px";
+              const head = document.createElement("div");
+              head.className = "m-header";
+              const title = document.createElement("div");
+              title.className = "m-title";
+              title.textContent = "";
+              const meta = document.createElement("div");
+              meta.className = "m-meta";
+              meta.textContent = `${items.length} activities`;
+              head.appendChild(title);
+              if (showMeta) head.appendChild(meta);
+              card.appendChild(head);
+              const body = document.createElement("div");
+              body.className = "m-body";
+              if (items.length === 0) {
+                const empty = document.createElement("div");
+                empty.className = "empty";
+                empty.textContent = "No activities";
+                body.appendChild(empty);
+              } else {
+                items.forEach((it) => {
+                  const row = document.createElement("div");
+                  row.className = "mi";
+                  const color = projectColor(it.project);
+                  const textColor = `#${color.text}`;
+                  const bgColor = `#${color.bg}`;
+                  let badgeTxt =
+                    it.dateLabel && String(it.dateLabel).trim()
+                      ? it.dateLabel
+                      : `${MONTHS[mm.m]} ${it.date.getDate().toString().padStart(2, "0")}`;
+                  const status = (it.status || "").toLowerCase();
+                  row.classList.toggle("status-done", status === "done");
+                  row.classList.toggle("status-cancel", status === "cancel");
+                  row.classList.toggle("status-new", status === "new");
+                  const newBadgeHTML =
+                    status === "new"
+                      ? `<span class="new-badge">NEW</span>`
+                      : "";
+                  const badgeHTML =
+                    status === "cancel"
+                      ? `<span class=\"date-badge\" style=\"background: var(--status-cancel-badge-bg)\"><span class=\"dot\" style=\"background:#94a3b8\"></span><span class=\"date-text\">${badgeTxt}</span></span>`
+                      : `<span class=\"date-badge\" style=\"background:${bgColor}\"><span class=\"dot\" style=\"background:${textColor}\"></span><span class=\"date-text\" style=\"color:${textColor};font-weight:500;\">${badgeTxt}</span></span>`;
+                  row.innerHTML =
+                    `<span class=\"mi-flag\"></span>` +
+                    newBadgeHTML +
+                    badgeHTML +
+                    `<div><div class=\"title\">${it.title}</div></div>`;
+                  body.appendChild(row);
+                });
+              }
+              card.appendChild(body);
+              const allClosed =
+                items.length > 0 &&
+                items.every(
+                  (it) => it.status === "done" || it.status === "cancel",
+                );
+              if (allClosed) {
+                card.classList.add("card-complete");
+                const badge = document.createElement("div");
+                badge.className = "complete-badge";
+                card.appendChild(badge);
+              }
+              cardsLayer.appendChild(card);
+              maxCardH = Math.max(maxCardH, card.offsetHeight);
+              lastConnectorCards.push(card);
             }
-            card.appendChild(body);
-            const allClosed =
-              items.length > 0 &&
-              items.every(
-                (it) => it.status === "done" || it.status === "cancel",
-              );
-            if (allClosed) {
-              card.classList.add("card-complete");
-              const badge = document.createElement("div");
-              badge.className = "complete-badge";
-              card.appendChild(badge);
-            }
-            cardsLayer.appendChild(card);
-            maxCardH = Math.max(maxCardH, card.offsetHeight);
-            lastConnectorCards.push(card);
           } else {
+            // This is for regular, two-column months
             [k1, k2].forEach((key, offset) => {
               const bucket = grouped.get(key);
               if (!bucket || bucket.items.length === 0) return;
@@ -1511,13 +1688,10 @@
               card.id = `card-${key}`;
               card.classList.add(upDownIndex % 2 === 0 ? "up" : "down");
               upDownIndex++;
-              const baseLeft = (leftIndex + offset) * segWidth;
+              const baseLeft = monthX + offset * segWidth;
               const centerShift = (segWidth - halfCardW) / 2;
               let cardLeft = baseLeft + centerShift;
-              if (i === 0 && offset === 0 && state.startCond === "=") {
-                cardLeft = centerShift;
-              }
-              card.style.left = cardLeft + extraLeftPadding + "px";
+              card.style.left = cardLeft + "px";
               const head = document.createElement("div");
               head.className = "m-header";
               const title = document.createElement("div");
@@ -1577,6 +1751,7 @@
               lastConnectorCards.push(card);
             });
           }
+          monthX += isSingleCol ? segWidth : segWidth * 2;
         });
 
         // 動態更新 track gap
