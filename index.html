@@ -569,7 +569,35 @@
           --half-width: 220px;
         }
       }
+      .download-group {
+        display: flex;
+      }
+      .download-group .btn {
+        border-radius: 0;
+        position: relative;
+      }
+      .download-group .btn:first-child {
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+        border-right: none;
+      }
+      .download-group > .btn:last-child {
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+      }
+      .download-group select.btn {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: right .7em top 50%;
+        background-size: .65em auto;
+        padding-right: 2em;
+      }
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoVBL5gI9kDXDCynwWu4AYpaT0grwQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   </head>
   <body>
     <header>
@@ -612,6 +640,13 @@
           <button id="resetBtn" class="btn">Reset</button>
           <button id="exportJsonBtn" class="btn">Export JSON</button>
           <button id="importJsonBtn" class="btn">Import JSON</button>
+          <div class="download-group">
+            <button id="downloadBtn" class="btn">Download</button>
+            <select id="downloadFormat" class="btn">
+                <option value="png">PNG</option>
+                <option value="pdf">PDF</option>
+            </select>
+          </div>
         </div>
         <input
           type="file"
@@ -1784,6 +1819,62 @@
         // 同步 legend
         renderProjectLegend();
       }
+
+      // ========= Download Chart =========
+      document.getElementById('downloadBtn').addEventListener('click', () => {
+        const format = document.getElementById('downloadFormat').value;
+        const timelineElement = document.querySelector('.timeline');
+        const filename = `timeline-chart-${new Date().toISOString().slice(0,10)}`;
+
+        // Use a container that is definitely visible and scrollable
+        const scroller = document.getElementById('scroller');
+        const content = document.querySelector('.content');
+        
+        // We need to capture the 'content' inside the 'scroller' as it holds the actual chart width
+        const originalScrollerMaxHeight = scroller.style.maxHeight;
+        
+        // To capture everything, we can't have a max-height on the scroller
+        scroller.style.maxHeight = 'none';
+
+        html2canvas(content, { // Capture the content div
+            allowTaint: true,
+            useCORS: true,
+            width: content.scrollWidth, // Use scrollWidth to get full width
+            height: content.scrollHeight, // Use scrollHeight to get full height
+            windowWidth: content.scrollWidth,
+            windowHeight: content.scrollHeight
+        }).then(canvas => {
+            // Restore scroller style
+            scroller.style.maxHeight = originalScrollerMaxHeight;
+
+            if (format === 'png') {
+                const imgData = canvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = `${filename}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const imgData = canvas.toDataURL('image/png');
+                const canvasWidth = canvas.width;
+                const canvasHeight = canvas.height;
+                const pdf = new jsPDF({
+                    orientation: canvasWidth > canvasHeight ? 'l' : 'p',
+                    unit: 'px',
+                    format: [canvasWidth, canvasHeight]
+                });
+                pdf.addImage(imgData, 'PNG', 0, 0, canvasWidth, canvasHeight);
+                pdf.save(`${filename}.pdf`);
+            }
+        }).catch(err => {
+            console.error('Error generating chart image:', err);
+            alert('Could not generate chart image. See console for details.');
+            // Restore scroller style even on error
+            scroller.style.maxHeight = originalScrollerMaxHeight;
+        });
+      });
 
       // ========= Boot =========
       (function () {
